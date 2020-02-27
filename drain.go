@@ -53,14 +53,14 @@ func (k *Kubectl) NodeDrain() {
 
 func (k *Kubectl) NodeUncordon() {
 	Logger.Println("uncordon node %v", k.nodeName)
-	k.exec( "uncordon", "-l", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", k.nodeName))
+	k.exec("uncordon", "-l", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", k.nodeName))
 
 	Logger.Println("label node %v", k.nodeName)
 	k.exec("label", "node", k.nodeName, "--overwrite=true", "webdevops.io/azure-scheduledevents-manager-")
 }
 
-func (k *Kubectl) exec(args... string) {
-	cmd := exec.Command("kubectl", args...)
+func (k *Kubectl) exec(args ...string) {
+	cmd := exec.Command("/kubectl", args...)
 	Logger.Verbose("EXEC: %v", cmd.String())
 
 	cmd.String()

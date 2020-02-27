@@ -65,7 +65,6 @@ var (
 		time.RFC850,
 	}
 
-	httpClient *http.Client
 
 	apiErrorCount = 0
 )
@@ -77,11 +76,6 @@ func setupMetricsCollection() {
 	prometheus.MustRegister(scheduledEventRequestError)
 
 	apiErrorCount = 0
-
-	// Init http client
-	httpClient = &http.Client{
-		Timeout: opts.ApiTimeout,
-	}
 }
 
 func startMetricsCollection() {
@@ -144,14 +138,15 @@ func probeCollect() {
 						"notBefore":    event.NotBefore,
 					}).Set(eventValue)
 
-				if opts.NodeName != "" && resource == opts.NodeName {
+				if opts.VmNodeName != "" && resource == opts.VmNodeName {
 					if eventValue == 1 || drainTimeThreshold >= eventValue {
-						switch(strings.ToLower(event.EventType)) {
+						switch strings.ToLower(event.EventType) {
 						case "reboot":
 							fallthrough
 						case "redeploy":
 							fallthrough
 						case "preempt":
+							Logger.Println(fmt.Sprintf("detected %v in %v seconds", event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()))
 							triggerDrain = true
 						}
 					}
@@ -169,18 +164,26 @@ func probeCollect() {
 				}).Set(eventValue)
 		}
 	}
-	
+
 	scheduledEventDocumentIncarnation.With(prometheus.Labels{}).Set(float64(scheduledEvents.DocumentIncarnation))
 
 	Logger.Verbose("Fetched %v Azure ScheduledEvents", len(scheduledEvents.Events))
 
-	if opts.NodeName != "" {
+	if opts.KubeNodeName != "" {
 		if triggerDrain {
-			Logger.Verbose("Ensuring drain of node %v", opts.NodeName)
-			kubectl.NodeDrain()
+			if !nodeDrained {
+				Logger.Println(fmt.Sprintf("ensuring drain of node %v", opts.KubeNodeName))
+				kubectl.NodeDrain()
+				nodeDrained = true
+				nodeUncordon = false
+			}
 		} else {
-			Logger.Verbose("Ensuring uncordon of node %v", opts.NodeName)
-			kubectl.NodeUncordon()
+			if !nodeUncordon {
+				Logger.Println(fmt.Sprintf("ensuring uncordon of node %v", opts.KubeNodeName))
+				kubectl.NodeUncordon()
+				nodeDrained = false
+				nodeUncordon = true
+			}
 		}
 	}
 }
@@ -189,7 +192,7 @@ func fetchApiUrl() (*AzureScheduledEventResponse, error) {
 	ret := &AzureScheduledEventResponse{}
 
 	startTime := time.Now()
-	req, err := http.NewRequest("GET", opts.ApiUrl, nil)
+	req, err := http.NewRequest("GET", opts.ScheduledEventsApiUrl, nil)
 	if err != nil {
 		scheduledEventRequestError.With(prometheus.Labels{}).Inc()
 		return nil, err

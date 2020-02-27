@@ -41,7 +41,7 @@ Kubernetes Usage
 
 ```
 ---
-apiVersion: app/v1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: azure-scheduledevents
@@ -71,6 +71,19 @@ spec:
       containers:
       - name: azure-scheduledevents
         image: webdevops/azure-scheduledevents-manager
+        env:
+          - name: DRAIN_DELETE_LOCAL_DATA
+            value: "true"
+          - name: DRAIN_FORCE
+            value: "true"
+          - name: DRAIN_IGNORE_DAEMONSETS
+            value: "true"
+          - name: DRAIN_DELETE_LOCAL_DATA
+            value: "true"
+          - name: KUBE_NODENAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
         securityContext:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
