@@ -26,7 +26,7 @@ var (
 var opts struct {
 	// general options
 	ServerBind string        `long:"bind"                env:"SERVER_BIND"   description:"Server address"                default:":8080"`
-	ScrapeTime time.Duration `long:"scrape-time"         env:"SCRAPE_TIME"   description:"Scrape time in seconds"        default:"5m"`
+	ScrapeTime time.Duration `long:"scrape-time"         env:"SCRAPE_TIME"   description:"Scrape time in seconds"        default:"1m"`
 	Verbose    []bool        `long:"verbose" short:"v"   env:"VERBOSE"       description:"Verbose mode"`
 
 	// Api options
@@ -36,6 +36,7 @@ var opts struct {
 
 	NodeName string           `long:"kube.nodename"  env:"KUBE_NODENAME"   description:"Kubernetes node name"`
 
+	DrainNotBefore time.Duration `long:"drain.not-before"  env:"DRAIN_NOT_BEFORE"   description:"Dont drain before this time" default:"5m"`
 	DrainDeleteLocalData bool `long:"drain.delete-local-data"  env:"DRAIN_DELETE_LOCAL_DATA"   description:"Continue even if there are pods using emptyDir (local data that will be deleted when the node is drained)"`
 	DrainForce bool           `long:"drain.force"  env:"DRAIN_FORCE"   description:"Continue even if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet"`
 	DrainGracePeriod int64    `long:"drain.grace-period"  env:"DRAIN_GRACE_PERIOD"   description:"Period of time in seconds given to each pod to terminate gracefully. If negative, the default value specified in the pod will be used."`

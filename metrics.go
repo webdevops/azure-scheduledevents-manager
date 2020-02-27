@@ -101,6 +101,8 @@ func startHttpServer() {
 func probeCollect() {
 	triggerDrain := false
 
+	drainTimeThreshold := float64(time.Now().Add(opts.DrainNotBefore).Unix())
+
 	scheduledEvents, err := fetchApiUrl()
 	if err != nil {
 		apiErrorCount++
@@ -143,13 +145,15 @@ func probeCollect() {
 					}).Set(eventValue)
 
 				if opts.NodeName != "" && resource == opts.NodeName {
-					switch(strings.ToLower(event.EventType)) {
-					case "reboot":
-						fallthrough
-					case "redeploy":
-						fallthrough
-					case "preempt":
-						triggerDrain = true
+					if eventValue == 1 || drainTimeThreshold >= eventValue {
+						switch(strings.ToLower(event.EventType)) {
+						case "reboot":
+							fallthrough
+						case "redeploy":
+							fallthrough
+						case "preempt":
+							triggerDrain = true
+						}
 					}
 				}
 			}
@@ -165,7 +169,7 @@ func probeCollect() {
 				}).Set(eventValue)
 		}
 	}
-
+	
 	scheduledEventDocumentIncarnation.With(prometheus.Labels{}).Set(float64(scheduledEvents.DocumentIncarnation))
 
 	Logger.Verbose("Fetched %v Azure ScheduledEvents", len(scheduledEvents.Events))
