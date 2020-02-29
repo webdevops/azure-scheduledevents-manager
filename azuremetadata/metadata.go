@@ -7,10 +7,10 @@ import (
 )
 
 type AzureMetadata struct {
-	Timeout *time.Duration
+	Timeout             *time.Duration
 	InstanceMetadataUrl string
-	ScheduledEventsUrl string
-	HttpClient *http.Client
+	ScheduledEventsUrl  string
+	HttpClient          *http.Client
 }
 
 func (m *AzureMetadata) Init() {

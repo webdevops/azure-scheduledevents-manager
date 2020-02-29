@@ -22,10 +22,7 @@ var (
 	ErrorLogger *DaemonLogger
 
 	azureMetadata *azuremetadata.AzureMetadata
-	kubectl *KubernetesClient
-
-	nodeDrained bool
-	nodeUncordon bool
+	kubectl       *KubernetesClient
 )
 
 var opts struct {
@@ -35,12 +32,12 @@ var opts struct {
 	Verbose    []bool        `long:"verbose" short:"v"   env:"VERBOSE"       description:"Verbose mode"`
 
 	// Api options
-	InstanceApiUrl        string  `long:"instance-url"             env:"INSTANCE_API_URL"       description:"Azure ScheduledEvents API URL" default:"http://169.254.169.254/metadata/instance?api-version=2017-08-01"`
-	ScheduledEventsApiUrl string  `long:"api-url"            env:"API_URL"       description:"Azure ScheduledEvents API URL" default:"http://169.254.169.254/metadata/scheduledevents?api-version=2017-11-01"`
-	ApiTimeout        time.Duration `long:"api-timeout"         env:"API_TIMEOUT"   description:"Azure API timeout (seconds)"   default:"30s"`
-	ApiErrorThreshold int           `long:"api-error-threshold" env:"API_ERROR_THRESHOLD"   description:"Azure API error threshold (after which app will panic)"   default:"0"`
+	InstanceApiUrl        string        `long:"instance-url"             env:"INSTANCE_API_URL"       description:"Azure ScheduledEvents API URL" default:"http://169.254.169.254/metadata/instance?api-version=2017-08-01"`
+	ScheduledEventsApiUrl string        `long:"api-url"            env:"API_URL"       description:"Azure ScheduledEvents API URL" default:"http://169.254.169.254/metadata/scheduledevents?api-version=2017-11-01"`
+	ApiTimeout            time.Duration `long:"api-timeout"         env:"API_TIMEOUT"   description:"Azure API timeout (seconds)"   default:"30s"`
+	ApiErrorThreshold     int           `long:"api-error-threshold" env:"API_ERROR_THRESHOLD"   description:"Azure API error threshold (after which app will panic)"   default:"0"`
 
-	VmNodeName string `long:"vm.nodename"  env:"VM_NODENAME"   description:"VM node name"`
+	VmNodeName   string `long:"vm.nodename"  env:"VM_NODENAME"   description:"VM node name"`
 	KubeNodeName string `long:"kube.nodename"  env:"KUBE_NODENAME"   description:"Kubernetes node name"`
 
 	DrainNotBefore        time.Duration `long:"drain.not-before"         env:"DRAIN_NOT_BEFORE"   description:"Dont drain before this time" default:"5m"`
@@ -65,14 +62,13 @@ func main() {
 	// set verbosity
 	Verbose = len(opts.Verbose) >= 1
 
-
 	Logger.Messsage("Init Azure ScheduledEvents manager v%s (written by %v)", Version, Author)
 	Logger.Messsage("init azure metadata client")
 
 	azureMetadata = &azuremetadata.AzureMetadata{
-		ScheduledEventsUrl: opts.ScheduledEventsApiUrl,
+		ScheduledEventsUrl:  opts.ScheduledEventsApiUrl,
 		InstanceMetadataUrl: opts.InstanceApiUrl,
-		Timeout: &opts.ApiTimeout,
+		Timeout:             &opts.ApiTimeout,
 	}
 	azureMetadata.Init()
 
@@ -109,7 +105,6 @@ func main() {
 	Logger.Messsage("Starting http server on %s", opts.ServerBind)
 	startHttpServer()
 }
-
 
 func initArgparser() {
 	argparser = flags.NewParser(&opts, flags.Default)

@@ -43,15 +43,9 @@ var (
 		[]string{},
 	)
 
-	timeFormatList = []string{
-		time.RFC3339,
-		time.RFC1123,
-		time.RFC822Z,
-		time.RFC850,
-	}
-
-
 	apiErrorCount = 0
+	nodeDrained   bool
+	nodeUncordon  bool
 )
 
 func setupMetricsCollection() {
@@ -106,16 +100,11 @@ func probeCollect() {
 	scheduledEvent.Reset()
 
 	for _, event := range scheduledEvents.Events {
-		eventValue := float64(1)
+		eventValue, err := event.NotBeforeUnixTimestamp()
 
-		if event.NotBefore != "" {
-			notBefore, err := parseTime(event.NotBefore)
-			if err == nil {
-				eventValue = float64(notBefore.Unix())
-			} else {
-				ErrorLogger.Error(fmt.Sprintf("Unable to parse time \"%s\" of eventid \"%v\"", event.NotBefore, event.EventId), err)
-				eventValue = 0
-			}
+		if err != nil {
+			ErrorLogger.Error(fmt.Sprintf("Unable to parse time \"%s\" of eventid \"%v\": %v", event.NotBefore, event.EventId), err)
+			eventValue = 0
 		}
 
 		if len(event.Resources) >= 1 {
@@ -178,16 +167,4 @@ func probeCollect() {
 			}
 		}
 	}
-}
-
-
-func parseTime(value string) (parsedTime time.Time, err error) {
-	for _, format := range timeFormatList {
-		parsedTime, err = time.Parse(format, value)
-		if err == nil {
-			break
-		}
-	}
-
-	return
 }
