@@ -6,19 +6,19 @@ import (
 	"os/exec"
 )
 
-type Kubectl struct {
+type KubernetesClient struct {
 	nodeName string
 }
 
-func (k *Kubectl) SetNode(nodeName string) {
+func (k *KubernetesClient) SetNode(nodeName string) {
 	k.nodeName = nodeName
 }
 
-func (k *Kubectl) CheckConnection() {
+func (k *KubernetesClient) CheckConnection() {
 	k.exec("get", "node", k.nodeName, "--no-headers=true")
 }
 
-func (k *Kubectl) NodeDrain() {
+func (k *KubernetesClient) NodeDrain() {
 	// Label
 	Logger.Println("label node %v", k.nodeName)
 	k.exec("label", "node", k.nodeName, "--overwrite=true", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", k.nodeName))
@@ -51,7 +51,7 @@ func (k *Kubectl) NodeDrain() {
 	k.exec(kubectlDrainOpts...)
 }
 
-func (k *Kubectl) NodeUncordon() {
+func (k *KubernetesClient) NodeUncordon() {
 	Logger.Println("uncordon node %v", k.nodeName)
 	k.exec("uncordon", "-l", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", k.nodeName))
 
@@ -59,7 +59,7 @@ func (k *Kubectl) NodeUncordon() {
 	k.exec("label", "node", k.nodeName, "--overwrite=true", "webdevops.io/azure-scheduledevents-manager-")
 }
 
-func (k *Kubectl) exec(args ...string) {
+func (k *KubernetesClient) exec(args ...string) {
 	cmd := exec.Command("/kubectl", args...)
 	Logger.Verbose("EXEC: %v", cmd.String())
 

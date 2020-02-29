@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/jessevdk/go-flags"
+	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
 	"net/url"
 	"os"
 	"strings"
 	"time"
-	"net/http"
 )
 
 const (
@@ -21,8 +21,8 @@ var (
 	Logger      *DaemonLogger
 	ErrorLogger *DaemonLogger
 
-	kubectl *Kubectl
-	httpClient *http.Client
+	azureMetadata *azuremetadata.AzureMetadata
+	kubectl *KubernetesClient
 
 	nodeDrained bool
 	nodeUncordon bool
@@ -67,25 +67,30 @@ func main() {
 
 
 	Logger.Messsage("Init Azure ScheduledEvents manager v%s (written by %v)", Version, Author)
-	Logger.Messsage("init http client")
+	Logger.Messsage("init azure metadata client")
 
-	// Init http client
-	httpClient = &http.Client{
-		Timeout: opts.ApiTimeout,
+	azureMetadata = &azuremetadata.AzureMetadata{
+		ScheduledEventsUrl: opts.ScheduledEventsApiUrl,
+		InstanceMetadataUrl: opts.InstanceApiUrl,
+		Timeout: &opts.ApiTimeout,
 	}
+	azureMetadata.Init()
 
 	if opts.VmNodeName == "" {
+		instanceMetadata, err := azureMetadata.FetchInstanceMetadata()
+		if err != nil {
+			panic(err)
+		}
 		Logger.Messsage("detecting nodename")
-		opts.VmNodeName = detectNodeName()
-		Logger.Messsage("  node: %v", opts.VmNodeName)
+		opts.VmNodeName = instanceMetadata.Compute.Name
 	} else {
 		Logger.Messsage("using nodename from env")
-		Logger.Messsage("  node: %v", opts.VmNodeName)
 	}
+	Logger.Messsage("  node: %v", opts.VmNodeName)
 
 	Logger.Messsage("Init kubernetes")
 	Logger.Messsage("  Nodename: %v", opts.KubeNodeName)
-	kubectl = &Kubectl{}
+	kubectl = &KubernetesClient{}
 	kubectl.SetNode(opts.KubeNodeName)
 	kubectl.CheckConnection()
 

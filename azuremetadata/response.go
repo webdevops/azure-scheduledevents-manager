@@ -1,9 +1,18 @@
-package main
+package azuremetadata
 
-import (
-	"encoding/json"
-	"net/http"
-)
+type AzureScheduledEventResponse struct {
+	DocumentIncarnation int                   `json:"DocumentIncarnation"`
+	Events              []AzureScheduledEvent `json:"Events"`
+}
+
+type AzureScheduledEvent struct {
+	EventId      string   `json:"EventId"`
+	EventType    string   `json:"EventType"`
+	ResourceType string   `json:"ResourceType"`
+	Resources    []string `json:"Resources"`
+	EventStatus  string   `json:"EventStatus"`
+	NotBefore    string   `json:"NotBefore"`
+}
 
 type AzureMetadataInstanceResponse struct {
 	Compute struct {
@@ -23,32 +32,4 @@ type AzureMetadataInstanceResponse struct {
 		VMID                 string `json:"vmId"`
 		VMSize               string `json:"vmSize"`
 	} `json:"compute"`
-}
-
-func detectNodeName() string {
-	metadata := fetchApiInstanceMetadata()
-	return metadata.Compute.Name
-}
-
-func fetchApiInstanceMetadata() *AzureMetadataInstanceResponse {
-	ret := &AzureMetadataInstanceResponse{}
-
-	req, err := http.NewRequest("GET", opts.InstanceApiUrl, nil)
-	if err != nil {
-		panic(err)
-	}
-	req.Header.Add("Metadata", "true")
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-
-	err = json.NewDecoder(resp.Body).Decode(&ret)
-	if err != nil {
-		panic(err)
-	}
-
-	return ret
 }

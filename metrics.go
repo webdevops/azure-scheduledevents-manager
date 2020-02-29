@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -10,20 +9,6 @@ import (
 	"strings"
 	"time"
 )
-
-type AzureScheduledEventResponse struct {
-	DocumentIncarnation int                   `json:"DocumentIncarnation"`
-	Events              []AzureScheduledEvent `json:"Events"`
-}
-
-type AzureScheduledEvent struct {
-	EventId      string   `json:"EventId"`
-	EventType    string   `json:"EventType"`
-	ResourceType string   `json:"ResourceType"`
-	Resources    []string `json:"Resources"`
-	EventStatus  string   `json:"EventStatus"`
-	NotBefore    string   `json:"NotBefore"`
-}
 
 var (
 	scheduledEventDocumentIncarnation = prometheus.NewGaugeVec(
@@ -97,9 +82,11 @@ func probeCollect() {
 
 	drainTimeThreshold := float64(time.Now().Add(opts.DrainNotBefore).Unix())
 
-	scheduledEvents, err := fetchApiUrl()
+	startTime := time.Now()
+	scheduledEvents, err := azureMetadata.FetchScheduledEvents()
 	if err != nil {
 		apiErrorCount++
+		scheduledEventRequestError.With(prometheus.Labels{}).Inc()
 
 		if opts.ApiErrorThreshold <= 0 || apiErrorCount <= opts.ApiErrorThreshold {
 			ErrorLogger.Error("Failed API call:", err)
@@ -107,6 +94,11 @@ func probeCollect() {
 		} else {
 			panic(err.Error())
 		}
+	}
+
+	if opts.MetricsRequestStats {
+		duration := time.Now().Sub(startTime)
+		scheduledEventRequest.With(prometheus.Labels{}).Observe(duration.Seconds())
 	}
 
 	// reset error count and metrics
@@ -188,37 +180,6 @@ func probeCollect() {
 	}
 }
 
-func fetchApiUrl() (*AzureScheduledEventResponse, error) {
-	ret := &AzureScheduledEventResponse{}
-
-	startTime := time.Now()
-	req, err := http.NewRequest("GET", opts.ScheduledEventsApiUrl, nil)
-	if err != nil {
-		scheduledEventRequestError.With(prometheus.Labels{}).Inc()
-		return nil, err
-	}
-	req.Header.Add("Metadata", "true")
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		scheduledEventRequestError.With(prometheus.Labels{}).Inc()
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	err = json.NewDecoder(resp.Body).Decode(&ret)
-	if err != nil {
-		scheduledEventRequestError.With(prometheus.Labels{}).Inc()
-		return nil, err
-	}
-
-	if opts.MetricsRequestStats {
-		duration := time.Now().Sub(startTime)
-		scheduledEventRequest.With(prometheus.Labels{}).Observe(duration.Seconds())
-	}
-
-	return ret, nil
-}
 
 func parseTime(value string) (parsedTime time.Time, err error) {
 	for _, format := range timeFormatList {
