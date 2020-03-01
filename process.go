@@ -120,6 +120,7 @@ func probeCollect() {
 					}).Set(eventValue)
 
 				if opts.VmNodeName != "" && resource == opts.VmNodeName {
+					Logger.Println(fmt.Sprintf("detected %v in %v seconds", event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()))
 					if eventValue == 1 || drainTimeThreshold >= eventValue {
 						switch strings.ToLower(event.EventType) {
 						case "reboot":
@@ -127,7 +128,6 @@ func probeCollect() {
 						case "redeploy":
 							fallthrough
 						case "preempt":
-							Logger.Println(fmt.Sprintf("detected %v in %v seconds", event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()))
 							triggerDrain = true
 						}
 					}

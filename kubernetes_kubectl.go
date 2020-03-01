@@ -29,11 +29,11 @@ func (k *KubernetesClient) NodeDrain() {
 	}
 
 	// Label
-	Logger.Println("label node %v", k.nodeName)
+	Logger.Println(fmt.Sprintf("label node %v", k.nodeName))
 	k.exec("label", "node", k.nodeName, "--overwrite=true", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", k.nodeName))
 
 	// DRAIN
-	Logger.Println("drain node %v", k.nodeName)
+	Logger.Println(fmt.Sprintf("drain node %v", k.nodeName))
 	kubectlDrainOpts := []string{"drain", k.nodeName}
 	kubectlDrainOpts = append(kubectlDrainOpts, fmt.Sprintf("--timeout=%v", opts.DrainTimeout.String()))
 
@@ -65,10 +65,10 @@ func (k *KubernetesClient) NodeUncordon() {
 		return
 	}
 
-	Logger.Println("uncordon node %v", k.nodeName)
+	Logger.Println(fmt.Sprintf("uncordon node %v", k.nodeName))
 	k.exec("uncordon", "-l", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", k.nodeName))
 
-	Logger.Println("label node %v", k.nodeName)
+	Logger.Println(fmt.Sprintf("label node %v", k.nodeName))
 	k.exec("label", "node", k.nodeName, "--overwrite=true", "webdevops.io/azure-scheduledevents-manager-")
 }
 

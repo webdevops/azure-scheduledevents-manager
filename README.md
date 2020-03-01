@@ -82,6 +82,10 @@ spec:
       - name: azure-scheduledevents
         image: webdevops/azure-scheduledevents-manager
         env:
+          - name: DRAIN_ENABLE
+            value: "true"
+          - name: DRAIN_NOT_BEFORE
+            value: "5m"
           - name: DRAIN_DELETE_LOCAL_DATA
             value: "true"
           - name: DRAIN_FORCE
