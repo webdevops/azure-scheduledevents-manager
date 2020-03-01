@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"github.com/kvz/logstreamer"
 	"os/exec"
 )
 
@@ -79,16 +79,7 @@ func (k *KubernetesClient) execGet(resourceType string, args ...string) {
 		resourceType,
 	}
 	kubectlArgs = append(kubectlArgs, args...)
-	cmd := exec.Command("/kubectl", kubectlArgs...)
-	Logger.Verbose("EXEC: %v", cmd.String())
-
-	cmd.String()
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		panic(err)
-	}
+	k.runComand(exec.Command("/kubectl", kubectlArgs...))
 }
 
 func (k *KubernetesClient) exec(args ...string) {
@@ -96,12 +87,19 @@ func (k *KubernetesClient) exec(args ...string) {
 		args = append(args, "--dry-run")
 	}
 
-	cmd := exec.Command("/kubectl", args...)
-	Logger.Verbose("EXEC: %v", cmd.String())
+	k.runComand(exec.Command("/kubectl", args...))
+}
 
-	cmd.String()
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+func (k *KubernetesClient) runComand(cmd *exec.Cmd) {
+	logStreamerOut := logstreamer.NewLogstreamer(Logger.Logger, "kubectl: ", false)
+	defer logStreamerOut.Close()
+
+	logStreamerErr := logstreamer.NewLogstreamer(Logger.Logger, "kubectl: ", true)
+	defer logStreamerErr.Close()
+
+	Logger.Verbose("EXEC: %v", cmd.String())
+	cmd.Stdout = logStreamerOut
+	cmd.Stderr = logStreamerErr
 	err := cmd.Run()
 	if err != nil {
 		panic(err)
