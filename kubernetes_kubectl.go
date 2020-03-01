@@ -8,17 +8,26 @@ import (
 
 type KubernetesClient struct {
 	nodeName string
+	enabled  bool
 }
 
 func (k *KubernetesClient) SetNode(nodeName string) {
 	k.nodeName = nodeName
 }
 
+func (k *KubernetesClient) Enable() {
+	k.enabled = true
+}
+
 func (k *KubernetesClient) CheckConnection() {
-	k.exec("get", "node", k.nodeName, "--no-headers=true")
+	k.execGet("node", k.nodeName)
 }
 
 func (k *KubernetesClient) NodeDrain() {
+	if !k.enabled {
+		return
+	}
+
 	// Label
 	Logger.Println("label node %v", k.nodeName)
 	k.exec("label", "node", k.nodeName, "--overwrite=true", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", k.nodeName))
@@ -52,6 +61,10 @@ func (k *KubernetesClient) NodeDrain() {
 }
 
 func (k *KubernetesClient) NodeUncordon() {
+	if !k.enabled {
+		return
+	}
+
 	Logger.Println("uncordon node %v", k.nodeName)
 	k.exec("uncordon", "-l", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", k.nodeName))
 
@@ -59,7 +72,30 @@ func (k *KubernetesClient) NodeUncordon() {
 	k.exec("label", "node", k.nodeName, "--overwrite=true", "webdevops.io/azure-scheduledevents-manager-")
 }
 
+func (k *KubernetesClient) execGet(resourceType string, args ...string) {
+	kubectlArgs := []string{
+		"get",
+		"--no-headers=true",
+		resourceType,
+	}
+	kubectlArgs = append(args, kubectlArgs...)
+	cmd := exec.Command("/kubectl", kubectlArgs...)
+	Logger.Verbose("EXEC: %v", cmd.String())
+
+	cmd.String()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (k *KubernetesClient) exec(args ...string) {
+	if opts.DrainDryRun {
+		args = append(args, "--dry-run")
+	}
+
 	cmd := exec.Command("/kubectl", args...)
 	Logger.Verbose("EXEC: %v", cmd.String())
 

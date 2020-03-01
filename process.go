@@ -82,7 +82,7 @@ func probeCollect() {
 		apiErrorCount++
 		scheduledEventRequestError.With(prometheus.Labels{}).Inc()
 
-		if opts.ApiErrorThreshold <= 0 || apiErrorCount <= opts.ApiErrorThreshold {
+		if opts.AzureErrorThreshold <= 0 || apiErrorCount <= opts.AzureErrorThreshold {
 			ErrorLogger.Error("Failed API call:", err)
 			return
 		} else {
