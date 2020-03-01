@@ -91,10 +91,10 @@ func (k *KubernetesClient) exec(args ...string) {
 }
 
 func (k *KubernetesClient) runComand(cmd *exec.Cmd) {
-	logStreamerOut := logstreamer.NewLogstreamer(Logger.Logger, "kubectl: ", false)
+	logStreamerOut := logstreamer.NewLogstreamer(Logger.Logger, "kubectl >> ", false)
 	defer logStreamerOut.Close()
 
-	logStreamerErr := logstreamer.NewLogstreamer(Logger.Logger, "kubectl: ", true)
+	logStreamerErr := logstreamer.NewLogstreamer(ErrorLogger.Logger, "kubectl >> ", true)
 	defer logStreamerErr.Close()
 
 	Logger.Verbose("EXEC: %v", cmd.String())
