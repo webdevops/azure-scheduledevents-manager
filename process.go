@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
 	"log"
 	"net/http"
 	"strings"
@@ -72,6 +73,7 @@ func startHttpServer() {
 }
 
 func probeCollect() {
+	var approveEvent *azuremetadata.AzureScheduledEvent
 	triggerDrain := false
 
 	drainTimeThreshold := float64(time.Now().Add(opts.DrainNotBefore).Unix())
@@ -120,7 +122,8 @@ func probeCollect() {
 					}).Set(eventValue)
 
 				if opts.VmNodeName != "" && resource == opts.VmNodeName {
-					Logger.Println(fmt.Sprintf("detected %v in %v", event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()))
+					Logger.Println(fmt.Sprintf("detected ScheduledEvent %v with %v in %v", event.EventId, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()))
+					approveEvent = &event
 					if eventValue == 1 || drainTimeThreshold >= eventValue {
 						switch strings.ToLower(event.EventType) {
 						case "reboot":
@@ -155,8 +158,18 @@ func probeCollect() {
 			if !nodeDrained {
 				Logger.Println(fmt.Sprintf("ensuring drain of node %v", opts.KubeNodeName))
 				kubectl.NodeDrain()
+				Logger.Println("  - drained successfully")
 				nodeDrained = true
 				nodeUncordon = false
+			}
+
+			if opts.AzureApproveScheduledEvent {
+				Logger.Println(fmt.Sprintf("approving ScheduledEvent %v with %v", approveEvent.EventId, approveEvent.EventType))
+				if err := azureMetadata.ApproveScheduledEvent(approveEvent); err == nil {
+					Logger.Println("  - event approved")
+				} else {
+					Logger.Println(fmt.Sprintf("  - approval failed: %v", err))
+				}
 			}
 		} else {
 			if !nodeUncordon {

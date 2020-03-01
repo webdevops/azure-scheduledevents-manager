@@ -32,10 +32,11 @@ var opts struct {
 	Verbose    []bool        `long:"verbose" short:"v"   env:"VERBOSE"       description:"Verbose mode"`
 
 	// Api options
-	AzureInstanceApiUrl        string        `long:"azure.metadatainstance-url" env:"AZURE_METADATAINSTANCE_URL"  description:"Azure ScheduledEvents API URL" default:"http://169.254.169.254/metadata/instance?api-version=2017-08-01"`
-	AzureScheduledEventsApiUrl string        `long:"azure.scheduledevents-url"  env:"AZURE_SCHEDULEDEVENTS_URL"   description:"Azure ScheduledEvents API URL" default:"http://169.254.169.254/metadata/scheduledevents?api-version=2017-11-01"`
-	AzureTimeout               time.Duration `long:"azure.timeout"              env:"AZURE_TIMEOUT"               description:"Azure API timeout (seconds)"   default:"30s"`
-	AzureErrorThreshold        int           `long:"azure.error-threshold"      env:"AZURE_ERROR_THRESHOLD"       description:"Azure API error threshold (after which app will panic)"   default:"0"`
+	AzureInstanceApiUrl        string        `long:"azure.metadatainstance-url"    env:"AZURE_METADATAINSTANCE_URL"    description:"Azure ScheduledEvents API URL" default:"http://169.254.169.254/metadata/instance?api-version=2017-08-01"`
+	AzureScheduledEventsApiUrl string        `long:"azure.scheduledevents-url"     env:"AZURE_SCHEDULEDEVENTS_URL"     description:"Azure ScheduledEvents API URL" default:"http://169.254.169.254/metadata/scheduledevents?api-version=2017-11-01"`
+	AzureTimeout               time.Duration `long:"azure.timeout"                 env:"AZURE_TIMEOUT"                 description:"Azure API timeout (seconds)"   default:"30s"`
+	AzureErrorThreshold        int           `long:"azure.error-threshold"         env:"AZURE_ERROR_THRESHOLD"         description:"Azure API error threshold (after which app will panic)"   default:"0"`
+	AzureApproveScheduledEvent bool          `long:"azure.approve-scheduledevent"  env:"AZURE_APPROVE_SCHEDULEDEVENT"  description:"Approve ScheduledEvent and start (if possible) start them ASAP"`
 
 	VmNodeName   string `long:"vm.nodename"    env:"VM_NODENAME"     description:"VM node name"`
 	KubeNodeName string `long:"kube.nodename"  env:"KUBE_NODENAME"   description:"Kubernetes node name" required:"true"`

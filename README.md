@@ -6,7 +6,7 @@ Azure ScheduledEvents Manager
 [![Docker Build Status](https://img.shields.io/docker/cloud/automated/webdevops/azure-scheduledevents-manager)](https://hub.docker.com/r/webdevops/azure-scheduledevents-manager/)
 
 Manages Kubernetes nodes in specific [Azure ScheduledEvents](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/scheduled-events) (planned VM maintenance) and exports the status as metric.
-Drains nodes automatically when `Redeploy`, `Reboot` or `Preemt` is detected.
+Drains nodes automatically when `Redeploy`, `Reboot` or `Preemt` is detected and is able to approve (start event ASAP) the event automatically.
 
 It fetches informations from `http://169.254.169.254/metadata/scheduledevents?api-version=2017-08-01`
 and exports the parsed information as metric to Prometheus.
@@ -20,17 +20,18 @@ Configuration
 | `AZURE_SCHEDULEDEVENTS_URL`       | `http://169.254.169.254/metadata/scheduledevents?api-version=2017-08-01`  | Azure API url                                                     |
 | `AZURE_TIMEOUT`                   | `30s` (time.Duration)                                                     | API call timeout                                                  |
 | `AZURE_ERROR_THRESHOLD`           | `0` (disabled)                                                            | API error threshold after which app will panic (`0` = dislabed)   |
+| `AZURE_APPROVE_SCHEDULEDEVENT`    | `false` (disabled)                                                        | Approve ScheduledEvent and start (if possible) start them ASAP    |
 | `VM_NODENAME`                     | `empty for autodetection using instance metadata`                         | Azure resource name of VM (empty for autodetection)               |
 | `KUBE_NODENAME`                   | `empty`                                                                   | Kubernetes node name (required)                                   |
-| `DRAIN_ENABLE`                    | `disabled`                                                                | Enable drain handling                                             |
+| `DRAIN_ENABLE`                    | `disabled` (disabled)                                                     | Enable drain handling                                             |
 | `DRAIN_NOT_BEFORE`                | `5m`                                                                      | Dont drain before this time                                       |
 | `DRAIN_DELETE_LOCAL_DATA`         | `5m`                                                                      | Continue even if there are pods using emptyDir (local data that will be deleted when the node is drained)                                   |
-| `DRAIN_FORCE`                     | `disabled`                                                                | Continue even if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet                                   |
+| `DRAIN_FORCE`                     | `false` (disabled)                                                        | Continue even if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet                                   |
 | `DRAIN_GRACE_PERIOD`              | `0`                                                                       | Period of time in seconds given to each pod to terminate gracefully. If negative, the default value specified in the pod will be used                                   |
-| `DRAIN_IGNORE_DAEMONSETS`         | `disabled`                                                                | Ignore DaemonSet-managed pods                                     |
+| `DRAIN_IGNORE_DAEMONSETS`         | `false` (disabled)                                                        | Ignore DaemonSet-managed pods                                     |
 | `DRAIN_POD_SELECTOR`              | `empty`                                                                   | Label selector to filter pods on the node                         |
 | `DRAIN_TIMEOUT`                   | `0s`                                                                      | The length of time to wait before giving up, zero means infinite  |
-| `DRAIN_DRY_RUN`                   | `disabled`                                                                | Dry run, do not drain, uncordon or label any node                 |
+| `DRAIN_DRY_RUN`                   | `false`                                                                   | Dry run, do not drain, uncordon or label any node                 |
 | `SCRAPE_TIME`                     | `1m` (time.Duration)                                                      | Time between API calls                                            |
 | `SERVER_BIND`                     | `:8080`                                                                   | IP/Port binding                                                   |
 | `METRICS_REQUESTSTATS`            | `empty`                                                                   | Enable metric `azure_scheduledevent_request`                      |
@@ -83,6 +84,8 @@ spec:
       - name: azure-scheduledevents
         image: webdevops/azure-scheduledevents-manager
         env:
+          - name: AZURE_APPROVE_SCHEDULEDEVENT
+            value: "true"
           - name: DRAIN_ENABLE
             value: "true"
           - name: DRAIN_NOT_BEFORE
