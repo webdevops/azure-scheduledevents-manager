@@ -6,6 +6,7 @@ Azure ScheduledEvents Manager
 [![Docker Build Status](https://img.shields.io/docker/cloud/automated/webdevops/azure-scheduledevents-manager)](https://hub.docker.com/r/webdevops/azure-scheduledevents-manager/)
 
 Manages Kubernetes nodes in specific [Azure ScheduledEvents](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/scheduled-events) (planned VM maintenance) and exports the status as metric.
+Drains nodes automatically when `Redeploy`, `Reboot` or `Preemt` is detected.
 
 It fetches informations from `http://169.254.169.254/metadata/scheduledevents?api-version=2017-08-01`
 and exports the parsed information as metric to Prometheus.
