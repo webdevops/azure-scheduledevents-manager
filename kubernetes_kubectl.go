@@ -78,7 +78,7 @@ func (k *KubernetesClient) execGet(resourceType string, args ...string) {
 		"--no-headers=true",
 		resourceType,
 	}
-	kubectlArgs = append(args, kubectlArgs...)
+	kubectlArgs = append(kubectlArgs, args...)
 	cmd := exec.Command("/kubectl", kubectlArgs...)
 	Logger.Verbose("EXEC: %v", cmd.String())
 
