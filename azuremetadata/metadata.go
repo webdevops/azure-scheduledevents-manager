@@ -82,7 +82,7 @@ func (m *AzureMetadata) FetchInstanceMetadata() (*AzureMetadataInstanceResponse,
 	return ret, nil
 }
 
-func (m *AzureMetadata) ApproveScheduledEvent(event *AzureScheduledEvent) (error) {
+func (m *AzureMetadata) ApproveScheduledEvent(event *AzureScheduledEvent) error {
 	approvePayload := AzureScheduledEventApproval{}
 	approvePayload.StartRequests = []AzureScheduledEventApprovalEvent{
 		{EventId: event.EventId},

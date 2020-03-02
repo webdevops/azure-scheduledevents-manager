@@ -63,5 +63,3 @@ func notificationMessage(message string, args ...interface{}) {
 		ErrorLogger.Error("Failed to send slack notification: %v", err)
 	}
 }
-
-
