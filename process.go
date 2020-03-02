@@ -157,6 +157,7 @@ func probeCollect() {
 		if triggerDrain {
 			if !nodeDrained {
 				Logger.Println(fmt.Sprintf("ensuring drain of node %v", opts.KubeNodeName))
+				notificationMessage("draining node %v", opts.KubeNodeName)
 				kubectl.NodeDrain()
 				Logger.Println("  - drained successfully")
 				nodeDrained = true

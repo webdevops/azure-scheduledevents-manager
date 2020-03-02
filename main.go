@@ -51,6 +51,9 @@ var opts struct {
 	DrainTimeout          time.Duration `long:"drain.timeout"            env:"DRAIN_TIMEOUT"            description:"The length of time to wait before giving up, zero means infinite" default:"0s"`
 	DrainDryRun           bool          `long:"drain.dry-run"            env:"DRAIN_DRY_RUN"            description:"Do not drain, uncordon or label any node"`
 
+	NotificationSlackUrl    string      `long:"notification.slack"           env:"NOTIFICATION_SLACK"             description:"Slack hook for notifications"`
+	NotificationMsgTemplate string      `long:"notification.messagetemplate" env:"NOTIFICATION_MESSAGE_TEMPLATE"  description:"Notification template" default:"%v"`
+
 	// metrics
 	MetricsRequestStats bool `long:"metrics-requeststats" env:"METRICS_REQUESTSTATS" description:"Enable request stats metrics"`
 }

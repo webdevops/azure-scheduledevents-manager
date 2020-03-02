@@ -36,6 +36,8 @@ Configuration
 | `SERVER_BIND`                     | `:8080`                                                                   | IP/Port binding                                                   |
 | `METRICS_REQUESTSTATS`            | `empty`                                                                   | Enable metric `azure_scheduledevent_request`                      |
 | `VERBOSE`                         | `disabled`                                                                | Verbose mode                                                      |
+| `NOTIFICATION_SLACK`              | `empty` (disabled)                                                        | Slack webhook for drain notifications                             |
+| `NOTIFICATION_MESSAGE_TEMPLATE`   | `%v`                                                                      | Template for notifications (sprintf)                              |
 
 Metrics
 -------
