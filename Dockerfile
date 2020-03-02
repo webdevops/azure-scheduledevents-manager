@@ -22,7 +22,7 @@ RUN /azure-scheduledevents-exporter --help
 # FINAL IMAGE
 #############################################
 FROM gcr.io/distroless/base
-COPY --from=build /azure-scheduledevents-exporter /
 COPY --from=build /kubectl /
+COPY --from=build /azure-scheduledevents-exporter /
 USER 1000
 ENTRYPOINT ["/azure-scheduledevents-exporter"]

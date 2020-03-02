@@ -68,7 +68,7 @@ func (k *KubernetesClient) NodeUncordon() {
 	Logger.Println(fmt.Sprintf("uncordon node %v", k.nodeName))
 	k.exec("uncordon", "-l", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", k.nodeName))
 
-	Logger.Println(fmt.Sprintf("label node %v", k.nodeName))
+	Logger.Println(fmt.Sprintf("remove label node %v", k.nodeName))
 	k.exec("label", "node", k.nodeName, "--overwrite=true", "webdevops.io/azure-scheduledevents-manager-")
 }
 

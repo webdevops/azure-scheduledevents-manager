@@ -80,10 +80,10 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		Logger.Messsage("detecting nodename")
+		Logger.Messsage("detecting VM resource name")
 		opts.VmNodeName = instanceMetadata.Compute.Name
 	} else {
-		Logger.Messsage("using nodename from env")
+		Logger.Messsage("using VM resource name from env")
 	}
 	Logger.Messsage("  node: %v", opts.VmNodeName)
 
@@ -93,17 +93,22 @@ func main() {
 	kubectl.SetNode(opts.KubeNodeName)
 	if opts.DrainEnable {
 		Logger.Messsage("  enabled automatic drain/uncordon")
+		if opts.DrainDryRun {
+			Logger.Messsage("  DRYRUN enabled")
+		}
+		Logger.Messsage("  drain not before: %v", opts.DrainNotBefore)
 		kubectl.Enable()
 	} else {
 		Logger.Messsage("  disabled automatic drain/uncordon")
 	}
+	Logger.Messsage("  checking API server access")
 	kubectl.CheckConnection()
 
 	Logger.Messsage("Starting metrics collection")
 	Logger.Messsage("  MetadataInstance URL: %v", opts.AzureInstanceApiUrl)
 	Logger.Messsage("  ScheduledEvents URL: %v", opts.AzureScheduledEventsApiUrl)
 	Logger.Messsage("  API timeout: %v", opts.AzureTimeout)
-	Logger.Messsage("  scape time: %v", opts.ScrapeTime)
+	Logger.Messsage("  scrape time: %v", opts.ScrapeTime)
 	if opts.AzureErrorThreshold > 0 {
 		Logger.Messsage("  error threshold: %v", opts.AzureErrorThreshold)
 	} else {

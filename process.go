@@ -61,7 +61,7 @@ func setupMetricsCollection() {
 func startMetricsCollection() {
 	go func() {
 		for {
-			go probeCollect()
+			probeCollect()
 			time.Sleep(opts.ScrapeTime)
 		}
 	}()
