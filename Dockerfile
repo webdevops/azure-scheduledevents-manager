@@ -3,26 +3,26 @@ FROM golang:1.14 as build
 WORKDIR /
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
 RUN chmod +x /kubectl
+RUN /kubectl version --client=true --short=true
 
-WORKDIR /go/src/github.com/webdevops/azure-scheduledevents-exporter
+WORKDIR /go/src/github.com/webdevops/azure-scheduledevents-manager
 
 # Get deps (cached)
-COPY ./go.mod /go/src/github.com/webdevops/azure-scheduledevents-exporter
-COPY ./go.sum /go/src/github.com/webdevops/azure-scheduledevents-exporter
+COPY ./go.mod /go/src/github.com/webdevops/azure-scheduledevents-manager
+COPY ./go.sum /go/src/github.com/webdevops/azure-scheduledevents-manager
 RUN go mod download
 
 # Compile
-COPY ./ /go/src/github.com/webdevops/azure-scheduledevents-exporter
-RUN go mod download \
-    && CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o /azure-scheduledevents-exporter \
-    && chmod +x /azure-scheduledevents-exporter
-RUN /azure-scheduledevents-exporter --help
+COPY ./ /go/src/github.com/webdevops/azure-scheduledevents-manager
+RUN make lint
+RUN make build
+RUN ./azure-scheduledevents-manager --help
 
 #############################################
 # FINAL IMAGE
 #############################################
 FROM gcr.io/distroless/base
 COPY --from=build /kubectl /
-COPY --from=build /azure-scheduledevents-exporter /
+COPY --from=build /go/src/github.com/webdevops/azure-scheduledevents-manager/azure-scheduledevents-manager /
 USER 1000
-ENTRYPOINT ["/azure-scheduledevents-exporter"]
+ENTRYPOINT ["/azure-scheduledevents-manager"]

@@ -105,7 +105,7 @@ func probeCollect() {
 		eventValue, err := event.NotBeforeUnixTimestamp()
 
 		if err != nil {
-			ErrorLogger.Error(fmt.Sprintf("Unable to parse time \"%s\" of eventid \"%v\": %v", event.NotBefore, event.EventId), err)
+			ErrorLogger.Error(fmt.Sprintf("Unable to parse time \"%s\" of eventid \"%v\"", event.NotBefore, event.EventId), err)
 			eventValue = 0
 		}
 

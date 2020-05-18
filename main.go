@@ -12,17 +12,19 @@ import (
 
 const (
 	Author  = "webdevops.io"
-	Version = "0.5.0"
 )
 
 var (
 	argparser   *flags.Parser
-	args        []string
 	Logger      *DaemonLogger
 	ErrorLogger *DaemonLogger
 
 	azureMetadata *azuremetadata.AzureMetadata
 	kubectl       *KubernetesClient
+
+	// Git version information
+	gitCommit = "<unknown>"
+	gitTag    = "<unknown>"
 )
 
 var opts struct {
@@ -68,7 +70,7 @@ func main() {
 	// set verbosity
 	Verbose = len(opts.Verbose) >= 1
 
-	Logger.Messsage("Init Azure ScheduledEvents manager v%s (written by %v)", Version, Author)
+	Logger.Messsage("Init Azure ScheduledEvents manager v%s (%s; by %v)", gitTag, gitCommit, Author)
 	Logger.Messsage("init azure metadata client")
 
 	azureMetadata = &azuremetadata.AzureMetadata{
