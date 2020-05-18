@@ -11,33 +11,76 @@ Drains nodes automatically when `Redeploy`, `Reboot` or `Preemt` is detected and
 It fetches informations from `http://169.254.169.254/metadata/scheduledevents?api-version=2017-08-01`
 and exports the parsed information as metric to Prometheus.
 
+Supports [shoutrrr](https://containrrr.github.io/shoutrrr/) notifications.
+
 Configuration
 -------------
 
-| Environment variable              | DefaultValue                                                              | Description                                                       |
-|-----------------------------------|---------------------------------------------------------------------------|-------------------------------------------------------------------|
-| `AZURE_METADATAINSTANCE_URL`      | `http://169.254.169.254/metadata/instance?api-version=2017-08-01`  | Azure API url                                                            |
-| `AZURE_SCHEDULEDEVENTS_URL`       | `http://169.254.169.254/metadata/scheduledevents?api-version=2017-08-01`  | Azure API url                                                     |
-| `AZURE_TIMEOUT`                   | `30s` (time.Duration)                                                     | API call timeout                                                  |
-| `AZURE_ERROR_THRESHOLD`           | `0` (disabled)                                                            | API error threshold after which app will panic (`0` = dislabed)   |
-| `AZURE_APPROVE_SCHEDULEDEVENT`    | `false` (disabled)                                                        | Approve ScheduledEvent and start (if possible) start them ASAP    |
-| `VM_NODENAME`                     | `empty for autodetection using instance metadata`                         | Azure resource name of VM (empty for autodetection)               |
-| `KUBE_NODENAME`                   | `empty`                                                                   | Kubernetes node name (required)                                   |
-| `DRAIN_ENABLE`                    | `disabled` (disabled)                                                     | Enable drain handling                                             |
-| `DRAIN_NOT_BEFORE`                | `5m`                                                                      | Dont drain before this time                                       |
-| `DRAIN_DELETE_LOCAL_DATA`         | `5m`                                                                      | Continue even if there are pods using emptyDir (local data that will be deleted when the node is drained)                                   |
-| `DRAIN_FORCE`                     | `false` (disabled)                                                        | Continue even if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet                                   |
-| `DRAIN_GRACE_PERIOD`              | `0`                                                                       | Period of time in seconds given to each pod to terminate gracefully. If negative, the default value specified in the pod will be used                                   |
-| `DRAIN_IGNORE_DAEMONSETS`         | `false` (disabled)                                                        | Ignore DaemonSet-managed pods                                     |
-| `DRAIN_POD_SELECTOR`              | `empty`                                                                   | Label selector to filter pods on the node                         |
-| `DRAIN_TIMEOUT`                   | `0s`                                                                      | The length of time to wait before giving up, zero means infinite  |
-| `DRAIN_DRY_RUN`                   | `false`                                                                   | Dry run, do not drain, uncordon or label any node                 |
-| `SCRAPE_TIME`                     | `1m` (time.Duration)                                                      | Time between API calls                                            |
-| `SERVER_BIND`                     | `:8080`                                                                   | IP/Port binding                                                   |
-| `METRICS_REQUESTSTATS`            | `empty`                                                                   | Enable metric `azure_scheduledevent_request`                      |
-| `VERBOSE`                         | `disabled`                                                                | Verbose mode                                                      |
-| `NOTIFICATION_SLACK`              | `empty` (disabled)                                                        | Slack webhook for drain notifications                             |
-| `NOTIFICATION_MESSAGE_TEMPLATE`   | `%v`                                                                      | Template for notifications (sprintf)                              |
+```
+Usage:
+  azure-scheduledevents-manager [OPTIONS]
+
+Application Options:
+      --bind=                         Server address (default: :8080)
+                                      [$SERVER_BIND]
+      --scrape-time=                  Scrape time in seconds (default: 1m)
+                                      [$SCRAPE_TIME]
+  -v, --verbose                       Verbose mode [$VERBOSE]
+      --azure.metadatainstance-url=   Azure ScheduledEvents API URL (default:
+                                      http://169.254.169.254/metadata/instance?-
+
+                                      api-version=2017-08-01)
+                                      [$AZURE_METADATAINSTANCE_URL]
+      --azure.scheduledevents-url=    Azure ScheduledEvents API URL (default:
+                                      http://169.254.169.254/metadata/scheduled-
+
+                                      events?api-version=2017-11-01)
+                                      [$AZURE_SCHEDULEDEVENTS_URL]
+      --azure.timeout=                Azure API timeout (seconds) (default:
+                                      30s) [$AZURE_TIMEOUT]
+      --azure.error-threshold=        Azure API error threshold (after which
+                                      app will panic) (default: 0)
+                                      [$AZURE_ERROR_THRESHOLD]
+      --azure.approve-scheduledevent  Approve ScheduledEvent and start (if
+                                      possible) start them ASAP
+                                      [$AZURE_APPROVE_SCHEDULEDEVENT]
+      --vm.nodename=                  VM node name [$VM_NODENAME]
+      --kube.nodename=                Kubernetes node name [$KUBE_NODENAME]
+      --drain.enable                  Enable drain handling [$DRAIN_ENABLE]
+      --drain.not-before=             Dont drain before this time (default: 5m)
+                                      [$DRAIN_NOT_BEFORE]
+      --drain.delete-local-data       Continue even if there are pods using
+                                      emptyDir (local data that will be deleted
+                                      when the node is drained)
+                                      [$DRAIN_DELETE_LOCAL_DATA]
+      --drain.force                   Continue even if there are pods not
+                                      managed by a ReplicationController,
+                                      ReplicaSet, Job, DaemonSet or StatefulSet
+                                      [$DRAIN_FORCE]
+      --drain.grace-period=           Period of time in seconds given to each
+                                      pod to terminate gracefully. If negative,
+                                      the default value specified in the pod
+                                      will be used. [$DRAIN_GRACE_PERIOD]
+      --drain.ignore-daemonsets       Ignore DaemonSet-managed pods.
+                                      [$DRAIN_IGNORE_DAEMONSETS]
+      --drain.pod-selector=           Label selector to filter pods on the node
+                                      [$DRAIN_POD_SELECTOR]
+      --drain.timeout=                The length of time to wait before giving
+                                      up, zero means infinite (default: 0s)
+                                      [$DRAIN_TIMEOUT]
+      --drain.dry-run                 Do not drain, uncordon or label any node
+                                      [$DRAIN_DRY_RUN]
+      --notification=                 Shoutrrr url for notifications
+                                      (https://containrrr.github.io/shoutrrr/)
+                                      [$NOTIFICATION]
+      --notification.messagetemplate= Notification template (default: %v)
+                                      [$NOTIFICATION_MESSAGE_TEMPLATE]
+      --metrics-requeststats          Enable request stats metrics
+                                      [$METRICS_REQUESTSTATS]
+
+Help Options:
+  -h, --help                          Show this help message
+```
 
 Metrics
 -------
@@ -86,6 +129,8 @@ spec:
       - name: azure-scheduledevents
         image: webdevops/azure-scheduledevents-manager
         env:
+          - name: NOTIFICATION
+            value: "slack://...."
           - name: AZURE_APPROVE_SCHEDULEDEVENT
             value: "true"
           - name: DRAIN_ENABLE

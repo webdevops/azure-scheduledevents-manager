@@ -151,13 +151,17 @@ func probeCollect() {
 
 	scheduledEventDocumentIncarnation.With(prometheus.Labels{}).Set(float64(scheduledEvents.DocumentIncarnation))
 
-	Logger.Verbose("Fetched %v Azure ScheduledEvents", len(scheduledEvents.Events))
+	if len(scheduledEvents.Events) > 0 {
+		Logger.Messsage("Fetched %v Azure ScheduledEvents", len(scheduledEvents.Events))
+	} else {
+		Logger.Verbose("Fetched %v Azure ScheduledEvents", len(scheduledEvents.Events))
+	}
 
 	if opts.KubeNodeName != "" {
 		if triggerDrain {
 			if !nodeDrained {
 				Logger.Println(fmt.Sprintf("ensuring drain of node %v", opts.KubeNodeName))
-				notificationMessage("draining node %v", opts.KubeNodeName)
+				notificationMessage("draining K8s node %v (upcoming Azure ScheduledEvent %v with %s)", opts.KubeNodeName, approveEvent.EventId, approveEvent.EventType)
 				kubectl.NodeDrain()
 				Logger.Println("  - drained successfully")
 				nodeDrained = true
