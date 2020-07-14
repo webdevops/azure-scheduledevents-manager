@@ -3,21 +3,21 @@ package main
 import (
 	"fmt"
 	"github.com/jessevdk/go-flags"
+	log "github.com/sirupsen/logrus"
 	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
+	"github.com/webdevops/azure-scheduledevents-manager/config"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
-	"time"
 )
 
 const (
-	Author  = "webdevops.io"
+	Author = "webdevops.io"
 )
 
 var (
-	argparser   *flags.Parser
-	Logger      *DaemonLogger
-	ErrorLogger *DaemonLogger
+	argparser *flags.Parser
 
 	azureMetadata *azuremetadata.AzureMetadata
 	kubectl       *KubernetesClient
@@ -27,51 +27,13 @@ var (
 	gitTag    = "<unknown>"
 )
 
-var opts struct {
-	// general options
-	ServerBind string        `long:"bind"                env:"SERVER_BIND"   description:"Server address"                default:":8080"`
-	ScrapeTime time.Duration `long:"scrape-time"         env:"SCRAPE_TIME"   description:"Scrape time in seconds"        default:"1m"`
-	Verbose    []bool        `long:"verbose" short:"v"   env:"VERBOSE"       description:"Verbose mode"`
-
-	// Api options
-	AzureInstanceApiUrl        string        `long:"azure.metadatainstance-url"    env:"AZURE_METADATAINSTANCE_URL"    description:"Azure ScheduledEvents API URL" default:"http://169.254.169.254/metadata/instance?api-version=2017-08-01"`
-	AzureScheduledEventsApiUrl string        `long:"azure.scheduledevents-url"     env:"AZURE_SCHEDULEDEVENTS_URL"     description:"Azure ScheduledEvents API URL" default:"http://169.254.169.254/metadata/scheduledevents?api-version=2017-11-01"`
-	AzureTimeout               time.Duration `long:"azure.timeout"                 env:"AZURE_TIMEOUT"                 description:"Azure API timeout (seconds)"   default:"30s"`
-	AzureErrorThreshold        int           `long:"azure.error-threshold"         env:"AZURE_ERROR_THRESHOLD"         description:"Azure API error threshold (after which app will panic)"   default:"0"`
-	AzureApproveScheduledEvent bool          `long:"azure.approve-scheduledevent"  env:"AZURE_APPROVE_SCHEDULEDEVENT"  description:"Approve ScheduledEvent and start (if possible) start them ASAP"`
-
-	VmNodeName   string `long:"vm.nodename"    env:"VM_NODENAME"     description:"VM node name"`
-	KubeNodeName string `long:"kube.nodename"  env:"KUBE_NODENAME"   description:"Kubernetes node name" required:"true"`
-
-	DrainEnable           bool          `long:"drain.enable"             env:"DRAIN_ENABLE"             description:"Enable drain handling"`
-	DrainNotBefore        time.Duration `long:"drain.not-before"         env:"DRAIN_NOT_BEFORE"         description:"Dont drain before this time" default:"5m"`
-	DrainDeleteLocalData  bool          `long:"drain.delete-local-data"  env:"DRAIN_DELETE_LOCAL_DATA"  description:"Continue even if there are pods using emptyDir (local data that will be deleted when the node is drained)"`
-	DrainForce            bool          `long:"drain.force"              env:"DRAIN_FORCE"              description:"Continue even if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet"`
-	DrainGracePeriod      int64         `long:"drain.grace-period"       env:"DRAIN_GRACE_PERIOD"       description:"Period of time in seconds given to each pod to terminate gracefully. If negative, the default value specified in the pod will be used."`
-	DrainIgnoreDaemonsets bool          `long:"drain.ignore-daemonsets"  env:"DRAIN_IGNORE_DAEMONSETS"  description:"Ignore DaemonSet-managed pods."`
-	DrainPodSelector      string        `long:"drain.pod-selector"       env:"DRAIN_POD_SELECTOR"       description:"Label selector to filter pods on the node"`
-	DrainTimeout          time.Duration `long:"drain.timeout"            env:"DRAIN_TIMEOUT"            description:"The length of time to wait before giving up, zero means infinite" default:"0s"`
-	DrainDryRun           bool          `long:"drain.dry-run"            env:"DRAIN_DRY_RUN"            description:"Do not drain, uncordon or label any node"`
-
-	Notification            []string `long:"notification"                 env:"NOTIFICATION"              description:"Shoutrrr url for notifications (https://containrrr.github.io/shoutrrr/)" env-delim:" "`
-	NotificationMsgTemplate string   `long:"notification.messagetemplate" env:"NOTIFICATION_MESSAGE_TEMPLATE"  description:"Notification template" default:"%v"`
-
-	// metrics
-	MetricsRequestStats bool `long:"metrics-requeststats" env:"METRICS_REQUESTSTATS" description:"Enable request stats metrics"`
-}
+var opts config.Opts
 
 func main() {
 	initArgparser()
 
-	// Init logger
-	Logger = CreateDaemonLogger(0)
-	ErrorLogger = CreateDaemonErrorLogger(0)
-
-	// set verbosity
-	Verbose = len(opts.Verbose) >= 1
-
-	Logger.Messsage("Init Azure ScheduledEvents manager v%s (%s; by %v)", gitTag, gitCommit, Author)
-	Logger.Messsage("init azure metadata client")
+	log.Infof("starting Azure ScheduledEvents manager v%s (%s; %s; by %v)", gitTag, gitCommit, runtime.Version(), Author)
+	log.Infof("starting azure metadata client")
 
 	azureMetadata = &azuremetadata.AzureMetadata{
 		ScheduledEventsUrl:  opts.AzureScheduledEventsApiUrl,
@@ -85,44 +47,44 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		Logger.Messsage("detecting VM resource name")
+		log.Infof("detecting VM resource name")
 		opts.VmNodeName = instanceMetadata.Compute.Name
 	} else {
-		Logger.Messsage("using VM resource name from env")
+		log.Infof("using VM resource name from env")
 	}
-	Logger.Messsage("  node: %v", opts.VmNodeName)
+	log.Infof("  node: %v", opts.VmNodeName)
 
-	Logger.Messsage("Init kubernetes")
-	Logger.Messsage("  Nodename: %v", opts.KubeNodeName)
+	log.Infof("init kubernetes")
+	log.Infof("  Nodename: %v", opts.KubeNodeName)
 	kubectl = &KubernetesClient{}
 	kubectl.SetNode(opts.KubeNodeName)
 	if opts.DrainEnable {
-		Logger.Messsage("  enabled automatic drain/uncordon")
+		log.Infof("  enabled automatic drain/uncordon")
 		if opts.DrainDryRun {
-			Logger.Messsage("  DRYRUN enabled")
+			log.Infof("  DRYRUN enabled")
 		}
-		Logger.Messsage("  drain not before: %v", opts.DrainNotBefore)
+		log.Infof("  drain not before: %v", opts.DrainNotBefore)
 		kubectl.Enable()
 	} else {
-		Logger.Messsage("  disabled automatic drain/uncordon")
+		log.Infof("  disabled automatic drain/uncordon")
 	}
-	Logger.Messsage("  checking API server access")
+	log.Infof("  checking API server access")
 	kubectl.CheckConnection()
 
-	Logger.Messsage("Starting metrics collection")
-	Logger.Messsage("  MetadataInstance URL: %v", opts.AzureInstanceApiUrl)
-	Logger.Messsage("  ScheduledEvents URL: %v", opts.AzureScheduledEventsApiUrl)
-	Logger.Messsage("  API timeout: %v", opts.AzureTimeout)
-	Logger.Messsage("  scrape time: %v", opts.ScrapeTime)
+	log.Infof("starting metrics collection")
+	log.Infof("  MetadataInstance URL: %v", opts.AzureInstanceApiUrl)
+	log.Infof("  ScheduledEvents URL: %v", opts.AzureScheduledEventsApiUrl)
+	log.Infof("  API timeout: %v", opts.AzureTimeout)
+	log.Infof("  scrape time: %v", opts.ScrapeTime)
 	if opts.AzureErrorThreshold > 0 {
-		Logger.Messsage("  error threshold: %v", opts.AzureErrorThreshold)
+		log.Infof("  error threshold: %v", opts.AzureErrorThreshold)
 	} else {
-		Logger.Messsage("  error threshold: disabled")
+		log.Infof("  error threshold: disabled")
 	}
 	setupMetricsCollection()
 	startMetricsCollection()
 
-	Logger.Messsage("Starting http server on %s", opts.ServerBind)
+	log.Infof("starting http server on %s", opts.ServerBind)
 	startHttpServer()
 }
 
@@ -139,6 +101,22 @@ func initArgparser() {
 			argparser.WriteHelp(os.Stdout)
 			os.Exit(1)
 		}
+	}
+
+	// verbose level
+	if opts.Logger.Verbose {
+		log.SetLevel(log.DebugLevel)
+	}
+
+	// debug level
+	if opts.Logger.Debug {
+		log.SetReportCaller(true)
+		log.SetLevel(log.TraceLevel)
+	}
+
+	// json log format
+	if opts.Logger.LogJson {
+		log.SetFormatter(&log.JSONFormatter{})
 	}
 
 	// validate instanceUrl url

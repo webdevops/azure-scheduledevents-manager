@@ -22,6 +22,7 @@ RUN ./azure-scheduledevents-manager --help
 # FINAL IMAGE
 #############################################
 FROM gcr.io/distroless/base
+ENV LOG_JSON=1
 COPY --from=build /kubectl /
 COPY --from=build /go/src/github.com/webdevops/azure-scheduledevents-manager/azure-scheduledevents-manager /
 USER 1000

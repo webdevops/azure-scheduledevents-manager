@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/kvz/logstreamer"
+	log "github.com/sirupsen/logrus"
 	"os/exec"
 )
 
@@ -29,11 +29,11 @@ func (k *KubernetesClient) NodeDrain() {
 	}
 
 	// Label
-	Logger.Println(fmt.Sprintf("label node %v", k.nodeName))
+	log.Infof(fmt.Sprintf("label node %v", k.nodeName))
 	k.exec("label", "node", k.nodeName, "--overwrite=true", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", k.nodeName))
 
 	// DRAIN
-	Logger.Println(fmt.Sprintf("drain node %v", k.nodeName))
+	log.Infof(fmt.Sprintf("drain node %v", k.nodeName))
 	kubectlDrainOpts := []string{"drain", k.nodeName}
 	kubectlDrainOpts = append(kubectlDrainOpts, fmt.Sprintf("--timeout=%v", opts.DrainTimeout.String()))
 
@@ -65,10 +65,10 @@ func (k *KubernetesClient) NodeUncordon() {
 		return
 	}
 
-	Logger.Println(fmt.Sprintf("uncordon node %v", k.nodeName))
+	log.Infof(fmt.Sprintf("uncordon node %v", k.nodeName))
 	k.exec("uncordon", "-l", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", k.nodeName))
 
-	Logger.Println(fmt.Sprintf("remove label node %v", k.nodeName))
+	log.Infof(fmt.Sprintf("remove label node %v", k.nodeName))
 	k.exec("label", "node", k.nodeName, "--overwrite=true", "webdevops.io/azure-scheduledevents-manager-")
 }
 
@@ -91,15 +91,10 @@ func (k *KubernetesClient) exec(args ...string) {
 }
 
 func (k *KubernetesClient) runComand(cmd *exec.Cmd) {
-	logStreamerOut := logstreamer.NewLogstreamer(Logger.Logger, "kubectl >> ", false)
-	defer logStreamerOut.Close()
-
-	logStreamerErr := logstreamer.NewLogstreamer(ErrorLogger.Logger, "kubectl >> ", true)
-	defer logStreamerErr.Close()
-
-	Logger.Verbose("EXEC: %v", cmd.String())
-	cmd.Stdout = logStreamerOut
-	cmd.Stderr = logStreamerErr
+	cmdLogger := log.WithField("command", "kubectl")
+	log.Debugf("EXEC: %v", cmd.String())
+	cmd.Stdout = cmdLogger.WriterLevel(log.InfoLevel)
+	cmd.Stderr = cmdLogger.WriterLevel(log.ErrorLevel)
 	err := cmd.Run()
 	if err != nil {
 		panic(err)

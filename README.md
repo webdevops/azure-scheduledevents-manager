@@ -93,76 +93,7 @@ Metrics
 | `azure_scheduledevent_request_error`        | Counter for failed requests                                                           |
 
 
-Kubernetes Usage
-----------------
+Kubernetes deployment
+---------------------
 
-```
----
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  name: azure-scheduledevents
-spec:
-  updateStrategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 100%
-  selector:
-    matchLabels:
-      app: azure-scheduledevents
-  template:
-    metadata:
-      labels:
-        app: azure-scheduledevents
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/path: /metrics
-        prometheus.io/port: "8080"
-    spec:
-      terminationGracePeriodSeconds: 15
-      nodeSelector:
-        beta.kubernetes.io/os: linux
-      tolerations:
-      - effect: NoSchedule
-        operator: Exists
-      containers:
-      - name: azure-scheduledevents
-        image: webdevops/azure-scheduledevents-manager
-        env:
-          - name: NOTIFICATION
-            value: "slack://...."
-          - name: AZURE_APPROVE_SCHEDULEDEVENT
-            value: "true"
-          - name: DRAIN_ENABLE
-            value: "true"
-          - name: DRAIN_NOT_BEFORE
-            value: "5m"
-          - name: DRAIN_DELETE_LOCAL_DATA
-            value: "true"
-          - name: DRAIN_FORCE
-            value: "true"
-          - name: DRAIN_IGNORE_DAEMONSETS
-            value: "true"
-          - name: DRAIN_DELETE_LOCAL_DATA
-            value: "true"
-          - name: KUBE_NODENAME
-            valueFrom:
-              fieldRef:
-                fieldPath: spec.nodeName
-        securityContext:
-          readOnlyRootFilesystem: true
-          runAsNonRoot: true
-          capabilities:
-            drop: ['ALL']
-        ports:
-        - containerPort: 8080
-          name: metrics
-          protocol: TCP
-        resources:
-          limits:
-            cpu: 100m
-            memory: 50Mi
-          requests:
-            cpu: 1m
-            memory: 50Mi
-```
+see [deployment](/deployment)

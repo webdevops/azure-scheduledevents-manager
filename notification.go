@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/containrrr/shoutrrr"
+	log "github.com/sirupsen/logrus"
 )
 
 func notificationMessage(message string, args ...interface{}) {
@@ -11,7 +12,7 @@ func notificationMessage(message string, args ...interface{}) {
 
 	for _, url := range opts.Notification {
 		if err := shoutrrr.Send(url, message); err != nil {
-			Logger.Error("Unable to send shoutrrr notification", err)
+			log.Errorf("unable to send shoutrrr notification: %v", err)
 		}
 	}
 }

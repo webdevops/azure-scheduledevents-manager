@@ -1,13 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
-	"log"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -85,7 +83,7 @@ func probeCollect() {
 		scheduledEventRequestError.With(prometheus.Labels{}).Inc()
 
 		if opts.AzureErrorThreshold <= 0 || apiErrorCount <= opts.AzureErrorThreshold {
-			ErrorLogger.Error("Failed API call:", err)
+			log.Errorf("failed API call: %s", err)
 			return
 		} else {
 			panic(err.Error())
@@ -105,12 +103,21 @@ func probeCollect() {
 		eventValue, err := event.NotBeforeUnixTimestamp()
 
 		if err != nil {
-			ErrorLogger.Error(fmt.Sprintf("Unable to parse time \"%s\" of eventid \"%v\"", event.NotBefore, event.EventId), err)
+			log.Errorf("unable to parse time \"%s\" of eventid \"%v\": %v", event.NotBefore, event.EventId, err)
 			eventValue = 0
 		}
 
 		if len(event.Resources) >= 1 {
 			for _, resource := range event.Resources {
+				log.WithFields(log.Fields{
+					"eventID":      event.EventId,
+					"eventType":    event.EventType,
+					"resourceType": event.ResourceType,
+					"resource":     resource,
+					"eventStatus":  event.EventStatus,
+					"notBefore":    event.NotBefore,
+				}).Debugf("found ScheduledEvent")
+
 				scheduledEvent.With(
 					prometheus.Labels{
 						"eventID":      event.EventId,
@@ -122,15 +129,17 @@ func probeCollect() {
 					}).Set(eventValue)
 
 				if opts.VmNodeName != "" && resource == opts.VmNodeName {
-					Logger.Println(fmt.Sprintf("detected ScheduledEvent %v with %v in %v", event.EventId, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()))
+					log.WithFields(log.Fields{
+						"eventID":      event.EventId,
+						"eventType":    event.EventType,
+						"resourceType": event.ResourceType,
+						"resource":     resource,
+						"eventStatus":  event.EventStatus,
+						"notBefore":    event.NotBefore,
+					}).Infof("detected ScheduledEvent %v with %v in %v for current node", event.EventId, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String())
 					approveEvent = &event
 					if eventValue == 1 || drainTimeThreshold >= eventValue {
-						switch strings.ToLower(event.EventType) {
-						case "reboot":
-							fallthrough
-						case "redeploy":
-							fallthrough
-						case "preempt":
+						if stringArrayContainsCi(opts.DrainEvents, event.EventType) {
 							triggerDrain = true
 						}
 					}
@@ -146,39 +155,58 @@ func probeCollect() {
 					"eventStatus":  event.EventStatus,
 					"notBefore":    event.NotBefore,
 				}).Set(eventValue)
+
+			log.WithFields(log.Fields{
+				"eventID":      event.EventId,
+				"eventType":    event.EventType,
+				"resourceType": event.ResourceType,
+				"resource":     "",
+				"eventStatus":  event.EventStatus,
+				"notBefore":    event.NotBefore,
+			}).Debugf("found ScheduledEvent")
 		}
 	}
 
 	scheduledEventDocumentIncarnation.With(prometheus.Labels{}).Set(float64(scheduledEvents.DocumentIncarnation))
 
 	if len(scheduledEvents.Events) > 0 {
-		Logger.Messsage("Fetched %v Azure ScheduledEvents", len(scheduledEvents.Events))
+		log.Infof("fetched %v Azure ScheduledEvents", len(scheduledEvents.Events))
 	} else {
-		Logger.Verbose("Fetched %v Azure ScheduledEvents", len(scheduledEvents.Events))
+		log.Debugf("fetched %v Azure ScheduledEvents", len(scheduledEvents.Events))
+
+		// if event is gone, ensure uncordon of node
+		if !nodeUncordon {
+			log.Infof("ensuring uncordon of node %v", opts.KubeNodeName)
+			kubectl.NodeUncordon()
+			nodeDrained = false
+			nodeUncordon = true
+		}
 	}
 
 	if opts.KubeNodeName != "" {
-		if triggerDrain {
+		if approveEvent != nil && triggerDrain {
+			eventLogger := log.WithField("eventID" , approveEvent.EventId)
+
 			if !nodeDrained {
-				Logger.Println(fmt.Sprintf("ensuring drain of node %v", opts.KubeNodeName))
+				eventLogger.Infof("ensuring drain of node %v", opts.KubeNodeName)
 				notificationMessage("draining K8s node %v (upcoming Azure ScheduledEvent %v with %s)", opts.KubeNodeName, approveEvent.EventId, approveEvent.EventType)
 				kubectl.NodeDrain()
-				Logger.Println("  - drained successfully")
+				eventLogger.Infof("drained successfully")
 				nodeDrained = true
 				nodeUncordon = false
 			}
 
 			if opts.AzureApproveScheduledEvent {
-				Logger.Println(fmt.Sprintf("approving ScheduledEvent %v with %v", approveEvent.EventId, approveEvent.EventType))
+				eventLogger.Infof("approving ScheduledEvent %v with %v", approveEvent.EventId, approveEvent.EventType)
 				if err := azureMetadata.ApproveScheduledEvent(approveEvent); err == nil {
-					Logger.Println("  - event approved")
+					eventLogger.Infof("event approved")
 				} else {
-					Logger.Println(fmt.Sprintf("  - approval failed: %v", err))
+					eventLogger.Infof("approval failed: %v", err)
 				}
 			}
 		} else {
 			if !nodeUncordon {
-				Logger.Println(fmt.Sprintf("ensuring uncordon of node %v", opts.KubeNodeName))
+				log.Infof("ensuring uncordon of node %v", opts.KubeNodeName)
 				kubectl.NodeUncordon()
 				nodeDrained = false
 				nodeUncordon = true

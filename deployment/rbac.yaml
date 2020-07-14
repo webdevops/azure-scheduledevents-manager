@@ -1,0 +1,51 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: azure-scheduledevents
+rules:
+  # Allow azure-scheduledevents to read spec.unschedulable
+  # Allow kubectl to drain/uncordon
+  #
+  # NB: These permissions are tightly coupled to the bundled version of kubectl; the ones below
+  # match https://github.com/kubernetes/kubernetes/blob/v1.17.7/staging/src/k8s.io/kubectl/pkg/cmd/drain/drain.go
+  #
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs:     ["get", "list", "patch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs:     ["list","delete","get"]
+  - apiGroups: ["apps"]
+    resources: ["daemonsets"]
+    verbs:     ["get"]
+  - apiGroups: [""]
+    resources: ["pods/eviction"]
+    verbs:     ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: azure-scheduledevents
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: azure-scheduledevents
+subjects:
+  - kind: ServiceAccount
+    name: azure-scheduledevents
+    namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: kube-system
+  name: azure-scheduledevents
+subjects:
+  - kind: ServiceAccount
+    namespace: kube-system
+    name: azure-scheduledevents
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: azure-scheduledevents

@@ -9,5 +9,6 @@ require (
 	github.com/kvz/logstreamer v0.0.0-20150507115422-a635b98146f0
 	github.com/prometheus/client_golang v1.4.1
 	github.com/prometheus/procfs v0.0.10 // indirect
+	github.com/sirupsen/logrus v1.6.0
 	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae // indirect
 )
