@@ -3,9 +3,13 @@ package main
 import (
 	"fmt"
 	"github.com/jessevdk/go-flags"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
 	"github.com/webdevops/azure-scheduledevents-manager/config"
+	"github.com/webdevops/azure-scheduledevents-manager/kubectl"
+	"github.com/webdevops/azure-scheduledevents-manager/manager"
+	"net/http"
 	"net/url"
 	"os"
 	"runtime"
@@ -18,9 +22,6 @@ const (
 
 var (
 	argparser *flags.Parser
-
-	azureMetadata *azuremetadata.AzureMetadata
-	kubectl       *KubernetesClient
 
 	// Git version information
 	gitCommit = "<unknown>"
@@ -35,15 +36,15 @@ func main() {
 	log.Infof("starting Azure ScheduledEvents manager v%s (%s; %s; by %v)", gitTag, gitCommit, runtime.Version(), Author)
 	log.Infof("starting azure metadata client")
 
-	azureMetadata = &azuremetadata.AzureMetadata{
+	azureMetadataClient := &azuremetadata.AzureMetadata{
 		ScheduledEventsUrl:  opts.AzureScheduledEventsApiUrl,
 		InstanceMetadataUrl: opts.AzureInstanceApiUrl,
 		Timeout:             &opts.AzureTimeout,
 	}
-	azureMetadata.Init()
+	azureMetadataClient.Init()
 
 	if opts.VmNodeName == "" {
-		instanceMetadata, err := azureMetadata.FetchInstanceMetadata()
+		instanceMetadata, err := azureMetadataClient.FetchInstanceMetadata()
 		if err != nil {
 			panic(err)
 		}
@@ -56,20 +57,22 @@ func main() {
 
 	log.Infof("init kubernetes")
 	log.Infof("  Nodename: %v", opts.KubeNodeName)
-	kubectl = &KubernetesClient{}
-	kubectl.SetNode(opts.KubeNodeName)
+	kubectlClient := &kubectl.KubernetesClient{
+		Conf: opts,
+	}
+	kubectlClient.SetNode(opts.KubeNodeName)
 	if opts.DrainEnable {
 		log.Infof("  enabled automatic drain/uncordon")
 		if opts.DrainDryRun {
 			log.Infof("  DRYRUN enabled")
 		}
 		log.Infof("  drain not before: %v", opts.DrainNotBefore)
-		kubectl.Enable()
+		kubectlClient.Enable()
 	} else {
 		log.Infof("  disabled automatic drain/uncordon")
 	}
 	log.Infof("  checking API server access")
-	kubectl.CheckConnection()
+	kubectlClient.CheckConnection()
 
 	log.Infof("starting metrics collection")
 	log.Infof("  MetadataInstance URL: %v", opts.AzureInstanceApiUrl)
@@ -81,8 +84,13 @@ func main() {
 	} else {
 		log.Infof("  error threshold: disabled")
 	}
-	setupMetricsCollection()
-	startMetricsCollection()
+	manager := manager.ScheduledEventsManager{
+		Conf: opts,
+		AzureMetadataClient: azureMetadataClient,
+		KubectlClient: kubectlClient,
+	}
+	manager.Init()
+	manager.Start()
 
 	log.Infof("starting http server on %s", opts.ServerBind)
 	startHttpServer()
@@ -161,4 +169,9 @@ func initArgparser() {
 		argparser.WriteHelp(os.Stdout)
 		os.Exit(1)
 	}
+}
+
+func startHttpServer() {
+	http.Handle("/metrics", promhttp.Handler())
+	log.Fatal(http.ListenAndServe(opts.ServerBind, nil))
 }

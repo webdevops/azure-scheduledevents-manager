@@ -1,88 +1,99 @@
-package main
+package manager
 
 import (
+	"fmt"
+	"github.com/containrrr/shoutrrr"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
-	"net/http"
+	"github.com/webdevops/azure-scheduledevents-manager/config"
+	"github.com/webdevops/azure-scheduledevents-manager/kubectl"
 	"time"
 )
 
-var (
-	scheduledEventDocumentIncarnation = prometheus.NewGaugeVec(
+type (
+	ScheduledEventsManager struct {
+		apiErrorCount int
+		nodeDrained   bool
+		nodeUncordon  bool
+
+		Conf config.Opts
+		AzureMetadataClient *azuremetadata.AzureMetadata
+		KubectlClient *kubectl.KubernetesClient
+
+		prometheus struct {
+			documentIncarnation *prometheus.GaugeVec
+			event *prometheus.GaugeVec
+			request *prometheus.HistogramVec
+			requestErrors *prometheus.CounterVec
+		}
+	}
+)
+
+func (m *ScheduledEventsManager) Init() {
+	m.initMetrics()
+}
+
+func (m *ScheduledEventsManager) initMetrics() {
+	m.prometheus.documentIncarnation = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "azure_scheduledevent_document_incarnation",
 			Help: "Azure ScheduledEvent document incarnation",
 		},
 		[]string{},
 	)
+	prometheus.MustRegister(m.prometheus.documentIncarnation)
 
-	scheduledEvent = prometheus.NewGaugeVec(
+	m.prometheus.event = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "azure_scheduledevent_event",
 			Help: "Azure ScheduledEvent",
 		},
 		[]string{"eventID", "eventType", "resourceType", "resource", "eventStatus", "notBefore"},
 	)
+	prometheus.MustRegister(m.prometheus.event)
 
-	scheduledEventRequest = prometheus.NewHistogramVec(
+	m.prometheus.request = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name: "azure_scheduledevent_request",
 			Help: "Azure ScheduledEvent requests",
 		},
 		[]string{},
 	)
+	prometheus.MustRegister(m.prometheus.request)
 
-	scheduledEventRequestError = prometheus.NewCounterVec(
+	m.prometheus.requestErrors = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "azure_scheduledevent_request_error",
 			Help: "Azure ScheduledEvent failed requests",
 		},
 		[]string{},
 	)
-
-	apiErrorCount = 0
-	nodeDrained   bool
-	nodeUncordon  bool
-)
-
-func setupMetricsCollection() {
-	prometheus.MustRegister(scheduledEvent)
-	prometheus.MustRegister(scheduledEventDocumentIncarnation)
-	prometheus.MustRegister(scheduledEventRequest)
-	prometheus.MustRegister(scheduledEventRequestError)
-
-	apiErrorCount = 0
+	prometheus.MustRegister(m.prometheus.requestErrors)
 }
 
-func startMetricsCollection() {
+func (m *ScheduledEventsManager) Start() {
 	go func() {
 		for {
-			probeCollect()
-			time.Sleep(opts.ScrapeTime)
+			m.collect()
+			time.Sleep(m.Conf.ScrapeTime)
 		}
 	}()
 }
 
-func startHttpServer() {
-	http.Handle("/metrics", promhttp.Handler())
-	log.Fatal(http.ListenAndServe(opts.ServerBind, nil))
-}
-
-func probeCollect() {
+func (m *ScheduledEventsManager) collect() {
 	var approveEvent *azuremetadata.AzureScheduledEvent
 	triggerDrain := false
 
-	drainTimeThreshold := float64(time.Now().Add(opts.DrainNotBefore).Unix())
+	drainTimeThreshold := float64(time.Now().Add(m.Conf.DrainNotBefore).Unix())
 
 	startTime := time.Now()
-	scheduledEvents, err := azureMetadata.FetchScheduledEvents()
+	scheduledEvents, err := m.AzureMetadataClient.FetchScheduledEvents()
 	if err != nil {
-		apiErrorCount++
-		scheduledEventRequestError.With(prometheus.Labels{}).Inc()
+		m.apiErrorCount++
+		m.prometheus.requestErrors.With(prometheus.Labels{}).Inc()
 
-		if opts.AzureErrorThreshold <= 0 || apiErrorCount <= opts.AzureErrorThreshold {
+		if m.Conf.AzureErrorThreshold <= 0 || m.apiErrorCount <= m.Conf.AzureErrorThreshold {
 			log.Errorf("failed API call: %s", err)
 			return
 		} else {
@@ -90,14 +101,14 @@ func probeCollect() {
 		}
 	}
 
-	if opts.MetricsRequestStats {
+	if m.Conf.MetricsRequestStats {
 		duration := time.Now().Sub(startTime)
-		scheduledEventRequest.With(prometheus.Labels{}).Observe(duration.Seconds())
+		m.prometheus.request.With(prometheus.Labels{}).Observe(duration.Seconds())
 	}
 
 	// reset error count and metrics
-	apiErrorCount = 0
-	scheduledEvent.Reset()
+	m.apiErrorCount = 0
+	m.prometheus.event.Reset()
 
 	for _, event := range scheduledEvents.Events {
 		eventValue, err := event.NotBeforeUnixTimestamp()
@@ -118,7 +129,7 @@ func probeCollect() {
 					"notBefore":    event.NotBefore,
 				}).Debugf("found ScheduledEvent")
 
-				scheduledEvent.With(
+				m.prometheus.event.With(
 					prometheus.Labels{
 						"eventID":      event.EventId,
 						"eventType":    event.EventType,
@@ -128,7 +139,7 @@ func probeCollect() {
 						"notBefore":    event.NotBefore,
 					}).Set(eventValue)
 
-				if opts.VmNodeName != "" && resource == opts.VmNodeName {
+				if m.Conf.VmNodeName != "" && resource == m.Conf.VmNodeName {
 					log.WithFields(log.Fields{
 						"eventID":      event.EventId,
 						"eventType":    event.EventType,
@@ -139,14 +150,14 @@ func probeCollect() {
 					}).Infof("detected ScheduledEvent %v with %v in %v for current node", event.EventId, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String())
 					approveEvent = &event
 					if eventValue == 1 || drainTimeThreshold >= eventValue {
-						if stringArrayContainsCi(opts.DrainEvents, event.EventType) {
+						if stringArrayContainsCi(m.Conf.DrainEvents, event.EventType) {
 							triggerDrain = true
 						}
 					}
 				}
 			}
 		} else {
-			scheduledEvent.With(
+			m.prometheus.event.With(
 				prometheus.Labels{
 					"eventID":      event.EventId,
 					"eventType":    event.EventType,
@@ -167,7 +178,7 @@ func probeCollect() {
 		}
 	}
 
-	scheduledEventDocumentIncarnation.With(prometheus.Labels{}).Set(float64(scheduledEvents.DocumentIncarnation))
+	m.prometheus.documentIncarnation.With(prometheus.Labels{}).Set(float64(scheduledEvents.DocumentIncarnation))
 
 	if len(scheduledEvents.Events) > 0 {
 		log.Infof("fetched %v Azure ScheduledEvents", len(scheduledEvents.Events))
@@ -175,42 +186,54 @@ func probeCollect() {
 		log.Debugf("fetched %v Azure ScheduledEvents", len(scheduledEvents.Events))
 
 		// if event is gone, ensure uncordon of node
-		if !nodeUncordon {
-			log.Infof("ensuring uncordon of node %v", opts.KubeNodeName)
-			kubectl.NodeUncordon()
-			nodeDrained = false
-			nodeUncordon = true
+		if !m.nodeUncordon {
+			log.Infof("ensuring uncordon of node %v", m.Conf.KubeNodeName)
+			m.KubectlClient.NodeUncordon()
+			m.nodeDrained = false
+			m.nodeUncordon = true
 		}
 	}
 
-	if opts.KubeNodeName != "" {
+	if m.Conf.KubeNodeName != "" {
 		if approveEvent != nil && triggerDrain {
 			eventLogger := log.WithField("eventID" , approveEvent.EventId)
 
-			if !nodeDrained {
-				eventLogger.Infof("ensuring drain of node %v", opts.KubeNodeName)
-				notificationMessage("draining K8s node %v (upcoming Azure ScheduledEvent %v with %s)", opts.KubeNodeName, approveEvent.EventId, approveEvent.EventType)
-				kubectl.NodeDrain()
+			if !m.nodeDrained {
+				eventLogger.Infof("ensuring drain of node %v", m.Conf.KubeNodeName)
+				m.sendNotification("draining K8s node %v (upcoming Azure ScheduledEvent %v with %s)", m.Conf.KubeNodeName, approveEvent.EventId, approveEvent.EventType)
+				m.KubectlClient.NodeDrain()
 				eventLogger.Infof("drained successfully")
-				nodeDrained = true
-				nodeUncordon = false
+				m.nodeDrained = true
+				m.nodeUncordon = false
 			}
 
-			if opts.AzureApproveScheduledEvent {
+			if m.Conf.AzureApproveScheduledEvent {
 				eventLogger.Infof("approving ScheduledEvent %v with %v", approveEvent.EventId, approveEvent.EventType)
-				if err := azureMetadata.ApproveScheduledEvent(approveEvent); err == nil {
+				if err := m.AzureMetadataClient.ApproveScheduledEvent(approveEvent); err == nil {
 					eventLogger.Infof("event approved")
 				} else {
 					eventLogger.Infof("approval failed: %v", err)
 				}
 			}
 		} else {
-			if !nodeUncordon {
-				log.Infof("ensuring uncordon of node %v", opts.KubeNodeName)
-				kubectl.NodeUncordon()
-				nodeDrained = false
-				nodeUncordon = true
+			if !m.nodeUncordon {
+				log.Infof("ensuring uncordon of node %v", m.Conf.KubeNodeName)
+				m.KubectlClient.NodeUncordon()
+				m.nodeDrained = false
+				m.nodeUncordon = true
 			}
+		}
+	}
+}
+
+
+func (m *ScheduledEventsManager) sendNotification(message string, args ...interface{}) {
+	message = fmt.Sprintf(message, args...)
+	message = fmt.Sprintf(m.Conf.NotificationMsgTemplate, message)
+
+	for _, url := range m.Conf.Notification {
+		if err := shoutrrr.Send(url, message); err != nil {
+			log.Errorf("unable to send shoutrrr notification: %v", err)
 		}
 	}
 }

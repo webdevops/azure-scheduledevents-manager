@@ -1,12 +1,15 @@
-package main
+package kubectl
 
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"github.com/webdevops/azure-scheduledevents-manager/config"
 	"os/exec"
 )
 
 type KubernetesClient struct {
+	Conf config.Opts
+	
 	nodeName string
 	enabled  bool
 }
@@ -35,26 +38,26 @@ func (k *KubernetesClient) NodeDrain() {
 	// DRAIN
 	log.Infof(fmt.Sprintf("drain node %v", k.nodeName))
 	kubectlDrainOpts := []string{"drain", k.nodeName}
-	kubectlDrainOpts = append(kubectlDrainOpts, fmt.Sprintf("--timeout=%v", opts.DrainTimeout.String()))
+	kubectlDrainOpts = append(kubectlDrainOpts, fmt.Sprintf("--timeout=%v", k.Conf.DrainTimeout.String()))
 
-	if opts.DrainDeleteLocalData {
+	if k.Conf.DrainDeleteLocalData {
 		kubectlDrainOpts = append(kubectlDrainOpts, "--delete-local-data=true")
 	}
 
-	if opts.DrainForce {
+	if k.Conf.DrainForce {
 		kubectlDrainOpts = append(kubectlDrainOpts, "--force=true")
 	}
 
-	if opts.DrainGracePeriod != 0 {
-		kubectlDrainOpts = append(kubectlDrainOpts, fmt.Sprintf("--grace-period=%v", opts.DrainGracePeriod))
+	if k.Conf.DrainGracePeriod != 0 {
+		kubectlDrainOpts = append(kubectlDrainOpts, fmt.Sprintf("--grace-period=%v", k.Conf.DrainGracePeriod))
 	}
 
-	if opts.DrainIgnoreDaemonsets {
+	if k.Conf.DrainIgnoreDaemonsets {
 		kubectlDrainOpts = append(kubectlDrainOpts, "--ignore-daemonsets=true")
 	}
 
-	if opts.DrainPodSelector != "" {
-		kubectlDrainOpts = append(kubectlDrainOpts, fmt.Sprintf("--pod-selector=%v", opts.DrainPodSelector))
+	if k.Conf.DrainPodSelector != "" {
+		kubectlDrainOpts = append(kubectlDrainOpts, fmt.Sprintf("--pod-selector=%v", k.Conf.DrainPodSelector))
 	}
 
 	k.exec(kubectlDrainOpts...)
@@ -83,7 +86,7 @@ func (k *KubernetesClient) execGet(resourceType string, args ...string) {
 }
 
 func (k *KubernetesClient) exec(args ...string) {
-	if opts.DrainDryRun {
+	if k.Conf.DrainDryRun {
 		args = append(args, "--dry-run")
 	}
 
