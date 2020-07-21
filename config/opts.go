@@ -1,6 +1,10 @@
 package config
 
-import "time"
+import (
+	"encoding/json"
+	log "github.com/sirupsen/logrus"
+	"time"
+)
 
 type (
 	Opts struct {
@@ -44,3 +48,11 @@ type (
 		MetricsRequestStats bool `long:"metrics-requeststats" env:"METRICS_REQUESTSTATS" description:"Enable request stats metrics"`
 	}
 )
+
+func (o *Opts) GetJson() []byte {
+	jsonBytes, err := json.Marshal(o)
+	if err != nil {
+		log.Panic(err)
+	}
+	return jsonBytes
+}

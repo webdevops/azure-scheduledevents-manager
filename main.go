@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"runtime"
 	"strings"
 )
@@ -34,8 +35,9 @@ func main() {
 	initArgparser()
 
 	log.Infof("starting Azure ScheduledEvents manager v%s (%s; %s; by %v)", gitTag, gitCommit, runtime.Version(), Author)
-	log.Infof("starting azure metadata client")
+	log.Info(string(opts.GetJson()))
 
+	log.Infof("starting azure metadata client")
 	azureMetadataClient := &azuremetadata.AzureMetadata{
 		ScheduledEventsUrl:  opts.AzureScheduledEventsApiUrl,
 		InstanceMetadataUrl: opts.AzureInstanceApiUrl,
@@ -53,37 +55,21 @@ func main() {
 	} else {
 		log.Infof("using VM resource name from env")
 	}
-	log.Infof("  node: %v", opts.VmNodeName)
+	log.Infof("using VM node: %v", opts.VmNodeName)
 
-	log.Infof("init kubernetes")
-	log.Infof("  Nodename: %v", opts.KubeNodeName)
+	log.Infof("init Kubernetes")
+	log.Infof("using Kubernetes nodename: %v", opts.KubeNodeName)
 	kubectlClient := &kubectl.KubernetesClient{
 		Conf: opts,
 	}
 	kubectlClient.SetNode(opts.KubeNodeName)
 	if opts.DrainEnable {
-		log.Infof("  enabled automatic drain/uncordon")
-		if opts.DrainDryRun {
-			log.Infof("  DRYRUN enabled")
-		}
-		log.Infof("  drain not before: %v", opts.DrainNotBefore)
 		kubectlClient.Enable()
-	} else {
-		log.Infof("  disabled automatic drain/uncordon")
 	}
-	log.Infof("  checking API server access")
+	log.Infof("checking Kubernetes API server access")
 	kubectlClient.CheckConnection()
 
 	log.Infof("starting metrics collection")
-	log.Infof("  MetadataInstance URL: %v", opts.AzureInstanceApiUrl)
-	log.Infof("  ScheduledEvents URL: %v", opts.AzureScheduledEventsApiUrl)
-	log.Infof("  API timeout: %v", opts.AzureTimeout)
-	log.Infof("  scrape time: %v", opts.ScrapeTime)
-	if opts.AzureErrorThreshold > 0 {
-		log.Infof("  error threshold: %v", opts.AzureErrorThreshold)
-	} else {
-		log.Infof("  error threshold: disabled")
-	}
 	manager := manager.ScheduledEventsManager{
 		Conf: opts,
 		AzureMetadataClient: azureMetadataClient,
@@ -120,11 +106,26 @@ func initArgparser() {
 	if opts.Logger.Debug {
 		log.SetReportCaller(true)
 		log.SetLevel(log.TraceLevel)
+		log.SetFormatter(&log.TextFormatter{
+			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+				s := strings.Split(f.Function, ".")
+				funcName := s[len(s)-1]
+				return funcName, fmt.Sprintf("%s:%d", path.Base(f.File), f.Line)
+			},
+		})
 	}
 
 	// json log format
 	if opts.Logger.LogJson {
-		log.SetFormatter(&log.JSONFormatter{})
+		log.SetReportCaller(true)
+		log.SetFormatter(&log.JSONFormatter{
+			DisableTimestamp: true,
+			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+				s := strings.Split(f.Function, ".")
+				funcName := s[len(s)-1]
+				return funcName, fmt.Sprintf("%s:%d", path.Base(f.File), f.Line)
+			},
+		})
 	}
 
 	// validate instanceUrl url
