@@ -9,7 +9,7 @@ import (
 
 type KubernetesClient struct {
 	Conf config.Opts
-	
+
 	nodeName string
 	enabled  bool
 }

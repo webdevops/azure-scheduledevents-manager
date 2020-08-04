@@ -17,15 +17,15 @@ type (
 		nodeDrained   bool
 		nodeUncordon  bool
 
-		Conf config.Opts
+		Conf                config.Opts
 		AzureMetadataClient *azuremetadata.AzureMetadata
-		KubectlClient *kubectl.KubernetesClient
+		KubectlClient       *kubectl.KubernetesClient
 
 		prometheus struct {
 			documentIncarnation *prometheus.GaugeVec
-			event *prometheus.GaugeVec
-			request *prometheus.HistogramVec
-			requestErrors *prometheus.CounterVec
+			event               *prometheus.GaugeVec
+			request             *prometheus.HistogramVec
+			requestErrors       *prometheus.CounterVec
 		}
 	}
 )
@@ -196,7 +196,7 @@ func (m *ScheduledEventsManager) collect() {
 
 	if m.Conf.KubeNodeName != "" {
 		if approveEvent != nil && triggerDrain {
-			eventLogger := log.WithField("eventID" , approveEvent.EventId)
+			eventLogger := log.WithField("eventID", approveEvent.EventId)
 
 			if !m.nodeDrained {
 				eventLogger.Infof("ensuring drain of node %v", m.Conf.KubeNodeName)
@@ -225,7 +225,6 @@ func (m *ScheduledEventsManager) collect() {
 		}
 	}
 }
-
 
 func (m *ScheduledEventsManager) sendNotification(message string, args ...interface{}) {
 	message = fmt.Sprintf(message, args...)

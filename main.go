@@ -71,9 +71,9 @@ func main() {
 
 	log.Infof("starting metrics collection")
 	manager := manager.ScheduledEventsManager{
-		Conf: opts,
+		Conf:                opts,
 		AzureMetadataClient: azureMetadataClient,
-		KubectlClient: kubectlClient,
+		KubectlClient:       kubectlClient,
 	}
 	manager.Init()
 	manager.Start()
