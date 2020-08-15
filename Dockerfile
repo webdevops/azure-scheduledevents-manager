@@ -10,7 +10,8 @@ WORKDIR /go/src/github.com/webdevops/azure-scheduledevents-manager
 # Get deps (cached)
 COPY ./go.mod /go/src/github.com/webdevops/azure-scheduledevents-manager
 COPY ./go.sum /go/src/github.com/webdevops/azure-scheduledevents-manager
-RUN go mod download
+COPY ./Makefile /go/src/github.com/webdevops/azure-scheduledevents-manager
+RUN make dependencies
 
 # Compile
 COPY ./ /go/src/github.com/webdevops/azure-scheduledevents-manager
