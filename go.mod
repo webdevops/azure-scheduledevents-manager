@@ -1,6 +1,6 @@
 module github.com/webdevops/azure-scheduledevents-manager
 
-go 1.14
+go 1.15
 
 require (
 	github.com/containrrr/shoutrrr v0.0.0-20200423175557-f8dbb8b0ad2a

@@ -1,4 +1,4 @@
-FROM golang:1.14 as build
+FROM golang:1.15 as build
 
 WORKDIR /
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
