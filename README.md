@@ -2,8 +2,8 @@ Azure ScheduledEvents Manager
 ==============================
 
 [![license](https://img.shields.io/github/license/webdevops/azure-scheduledevents-manager.svg)](https://github.com/webdevops/azure-scheduledevents-manager/blob/master/LICENSE)
-[![Docker](https://img.shields.io/badge/docker-webdevops%2Fazure--scheduledevents--manager-blue.svg?longCache=true&style=flat&logo=docker)](https://hub.docker.com/r/webdevops/azure-scheduledevents-manager/)
-[![Docker Build Status](https://img.shields.io/docker/cloud/automated/webdevops/azure-scheduledevents-manager)](https://hub.docker.com/r/webdevops/azure-scheduledevents-manager/)
+[![DockerHub](https://img.shields.io/badge/DockerHub-webdevops%2Fazure--scheduledevents--manager-blue)](https://hub.docker.com/r/webdevops/azure-scheduledevents-manager/)
+[![Quay.io](https://img.shields.io/badge/Quay.io-webdevops%2Fazure--scheduledevents--manager-blue)](https://quay.io/repository/webdevops/azure-scheduledevents-manager)
 
 Manages Kubernetes nodes in specific [Azure ScheduledEvents](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/scheduled-events) (planned VM maintenance) and exports the status as metric.
 Drains nodes automatically when `Redeploy`, `Reboot`, `Preemt` or `Terminate` is detected and is able to approve (start event ASAP) the event automatically.
