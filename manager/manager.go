@@ -102,7 +102,7 @@ func (m *ScheduledEventsManager) collect() {
 	}
 
 	if m.Conf.MetricsRequestStats {
-		duration := time.Now().Sub(startTime)
+		duration := time.Since(startTime)
 		m.prometheus.request.With(prometheus.Labels{}).Observe(duration.Seconds())
 	}
 
@@ -110,7 +110,8 @@ func (m *ScheduledEventsManager) collect() {
 	m.apiErrorCount = 0
 	m.prometheus.event.Reset()
 
-	for _, event := range scheduledEvents.Events {
+	for _, row := range scheduledEvents.Events {
+		event := row
 		eventValue, err := event.NotBeforeUnixTimestamp()
 
 		if err != nil {
@@ -147,7 +148,7 @@ func (m *ScheduledEventsManager) collect() {
 						"resource":     resource,
 						"eventStatus":  event.EventStatus,
 						"notBefore":    event.NotBefore,
-					}).Infof("detected ScheduledEvent %v with %v in %v for current node", event.EventId, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String())
+					}).Infof("detected ScheduledEvent %v with %v in %v for current node", event.EventId, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()) //nolint:gosimple
 					approveEvent = &event
 					if eventValue == 1 || drainTimeThreshold >= eventValue {
 						if stringArrayContainsCi(m.Conf.DrainEvents, event.EventType) {

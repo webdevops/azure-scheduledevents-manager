@@ -31,7 +31,7 @@ type (
 
 		// drain opts
 		DrainEnable           bool          `long:"drain.enable"             env:"DRAIN_ENABLE"                description:"Enable drain handling"`
-		DrainEvents           []string      `long:"drain.events"             env:"DRAIN_EVENTS" env-delim:" "  description:"Enable drain handling" default:"reboot" default:"redeploy" default:"preempt" default:"terminate"`
+		DrainEvents           []string      `long:"drain.events"             env:"DRAIN_EVENTS" env-delim:" "  description:"Enable drain handling" default:"reboot" default:"redeploy" default:"preempt" default:"terminate"` //nolint:staticcheck
 		DrainNotBefore        time.Duration `long:"drain.not-before"         env:"DRAIN_NOT_BEFORE"            description:"Dont drain before this time" default:"5m"`
 		DrainDeleteLocalData  bool          `long:"drain.delete-local-data"  env:"DRAIN_DELETE_LOCAL_DATA"     description:"Continue even if there are pods using emptyDir (local data that will be deleted when the node is drained)"`
 		DrainForce            bool          `long:"drain.force"              env:"DRAIN_FORCE"                 description:"Continue even if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet"`

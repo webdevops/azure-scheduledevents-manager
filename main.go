@@ -143,7 +143,7 @@ func initArgparser() {
 	case "https":
 		break
 	default:
-		fmt.Println(fmt.Sprintf("ApiURL scheme not allowed (must be http or https), got %v", opts.AzureInstanceApiUrl))
+		fmt.Printf("ApiURL scheme not allowed (must be http or https), got %v\n", opts.AzureInstanceApiUrl)
 		fmt.Println()
 		argparser.WriteHelp(os.Stdout)
 		os.Exit(1)
@@ -165,7 +165,7 @@ func initArgparser() {
 	case "https":
 		break
 	default:
-		fmt.Println(fmt.Sprintf("ApiURL scheme not allowed (must be http or https), got %v", opts.AzureScheduledEventsApiUrl))
+		fmt.Printf("ApiURL scheme not allowed (must be http or https), got %v\n", opts.AzureScheduledEventsApiUrl)
 		fmt.Println()
 		argparser.WriteHelp(os.Stdout)
 		os.Exit(1)

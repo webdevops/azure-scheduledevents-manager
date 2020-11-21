@@ -3,7 +3,6 @@ package azuremetadata
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -44,7 +43,7 @@ func (m *AzureMetadata) FetchScheduledEvents() (*AzureScheduledEventResponse, er
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("Expected HTTP status 200, got %v", resp.StatusCode))
+		return nil, fmt.Errorf("expected HTTP status 200, got %v", resp.StatusCode)
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&ret)
@@ -71,7 +70,7 @@ func (m *AzureMetadata) FetchInstanceMetadata() (*AzureMetadataInstanceResponse,
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("Expected HTTP status 200, got %v", resp.StatusCode))
+		return nil, fmt.Errorf("expected HTTP status 200, got %v", resp.StatusCode)
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&ret)
@@ -103,7 +102,7 @@ func (m *AzureMetadata) ApproveScheduledEvent(event *AzureScheduledEvent) error 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New(fmt.Sprintf("Expected HTTP status 200, got %v", resp.StatusCode))
+		return fmt.Errorf("expected HTTP status 200, got %v", resp.StatusCode)
 	}
 
 	return nil
