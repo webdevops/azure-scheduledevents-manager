@@ -5,7 +5,7 @@ ARG TARGETARCH=amd64
 WORKDIR /
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$TARGETOS/$TARGETARCH/kubectl
 RUN chmod +x /kubectl
-RUN /kubectl version --client=true --short=true
+RUN /kubectl version --client=true
 
 WORKDIR /go/src/github.com/webdevops/azure-scheduledevents-manager
 
