@@ -24,6 +24,8 @@ type (
 		prometheus struct {
 			documentIncarnation *prometheus.GaugeVec
 			event               *prometheus.GaugeVec
+			eventDrain          *prometheus.GaugeVec
+			eventApproval       *prometheus.GaugeVec
 			request             *prometheus.HistogramVec
 			requestErrors       *prometheus.CounterVec
 		}
@@ -52,6 +54,24 @@ func (m *ScheduledEventsManager) initMetrics() {
 		[]string{"eventID", "eventType", "resourceType", "resource", "eventStatus", "notBefore"},
 	)
 	prometheus.MustRegister(m.prometheus.event)
+
+	m.prometheus.eventApproval = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "azure_scheduledevent_event_approval",
+			Help: "Azure ScheduledEvent timestamp of approval",
+		},
+		[]string{"eventID"},
+	)
+	prometheus.MustRegister(m.prometheus.eventApproval)
+
+	m.prometheus.eventDrain = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "azure_scheduledevent_event_drain",
+			Help: "Azure ScheduledEvent timestamp of drain",
+		},
+		[]string{"eventID", "type"},
+	)
+	prometheus.MustRegister(m.prometheus.eventDrain)
 
 	m.prometheus.request = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -109,6 +129,11 @@ func (m *ScheduledEventsManager) collect() {
 	// reset error count and metrics
 	m.apiErrorCount = 0
 	m.prometheus.event.Reset()
+
+	if len(scheduledEvents.Events) == 0 {
+		m.prometheus.eventDrain.Reset()
+		m.prometheus.eventApproval.Reset()
+	}
 
 	for _, row := range scheduledEvents.Events {
 		event := row
@@ -202,7 +227,9 @@ func (m *ScheduledEventsManager) collect() {
 			if !m.nodeDrained {
 				eventLogger.Infof("ensuring drain of node %v", m.Conf.KubeNodeName)
 				m.sendNotification("draining K8s node %v (upcoming Azure ScheduledEvent %v with %s)", m.Conf.KubeNodeName, approveEvent.EventId, approveEvent.EventType)
+				m.prometheus.eventDrain.WithLabelValues(approveEvent.EventId, "start").SetToCurrentTime()
 				m.KubectlClient.NodeDrain()
+				m.prometheus.eventDrain.WithLabelValues(approveEvent.EventId, "finish").SetToCurrentTime()
 				eventLogger.Infof("drained successfully")
 				m.nodeDrained = true
 				m.nodeUncordon = false
@@ -211,6 +238,7 @@ func (m *ScheduledEventsManager) collect() {
 			if m.Conf.AzureApproveScheduledEvent {
 				eventLogger.Infof("approving ScheduledEvent %v with %v", approveEvent.EventId, approveEvent.EventType)
 				if err := m.AzureMetadataClient.ApproveScheduledEvent(approveEvent); err == nil {
+					m.prometheus.eventApproval.WithLabelValues(approveEvent.EventId).SetToCurrentTime()
 					eventLogger.Infof("event approved")
 				} else {
 					eventLogger.Infof("approval failed: %v", err)

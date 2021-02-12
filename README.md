@@ -59,6 +59,8 @@ Metrics
 |---------------------------------------------|---------------------------------------------------------------------------------------|
 | `azure_scheduledevent_document_incarnation` | Document incarnation number (version)                                                 |
 | `azure_scheduledevent_event`                | Fetched events from API                                                               |
+| `azure_scheduledevent_event_drain`          | Timestamp of drain (start and finish time)                                            |
+| `azure_scheduledevent_event_approval`       | Timestamp of last event acknowledge                                                   |
 | `azure_scheduledevent_request`              | Request histogram (count and request duration; disabled by default)                   |
 | `azure_scheduledevent_request_error`        | Counter for failed requests                                                           |
 
