@@ -28,7 +28,7 @@ image: build
 	docker build -t $(PROJECT_NAME):$(GIT_TAG) .
 
 build-push-development:
-	docker build -t webdevops/$(PROJECT_NAME):development . && docker push webdevops/$(PROJECT_NAME):development
+	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) -t webdevops/$(PROJECT_NAME):development . && docker push webdevops/$(PROJECT_NAME):development
 
 .PHONY: test
 test:
