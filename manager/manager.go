@@ -51,7 +51,7 @@ func (m *ScheduledEventsManager) initMetrics() {
 			Name: "azure_scheduledevent_event",
 			Help: "Azure ScheduledEvent",
 		},
-		[]string{"eventID", "eventType", "resourceType", "resource", "eventStatus", "notBefore"},
+		[]string{"eventID", "eventType", "resourceType", "resource", "eventStatus", "notBefore", "eventSource"},
 	)
 	prometheus.MustRegister(m.prometheus.event)
 
@@ -153,6 +153,7 @@ func (m *ScheduledEventsManager) collect() {
 					"resource":     resource,
 					"eventStatus":  event.EventStatus,
 					"notBefore":    event.NotBefore,
+					"eventSource":  event.EventSource,
 				}).Debugf("found ScheduledEvent")
 
 				m.prometheus.event.With(
@@ -163,6 +164,7 @@ func (m *ScheduledEventsManager) collect() {
 						"resource":     resource,
 						"eventStatus":  event.EventStatus,
 						"notBefore":    event.NotBefore,
+						"eventSource":  event.EventSource,
 					}).Set(eventValue)
 
 				if m.Conf.VmNodeName != "" && resource == m.Conf.VmNodeName {
@@ -173,6 +175,7 @@ func (m *ScheduledEventsManager) collect() {
 						"resource":     resource,
 						"eventStatus":  event.EventStatus,
 						"notBefore":    event.NotBefore,
+						"eventSource":  event.EventSource,
 					}).Infof("detected ScheduledEvent %v with %v in %v for current node", event.EventId, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()) //nolint:gosimple
 					approveEvent = &event
 					if eventValue == 1 || drainTimeThreshold >= eventValue {
@@ -191,6 +194,7 @@ func (m *ScheduledEventsManager) collect() {
 					"resource":     "",
 					"eventStatus":  event.EventStatus,
 					"notBefore":    event.NotBefore,
+					"eventSource":  event.EventSource,
 				}).Set(eventValue)
 
 			log.WithFields(log.Fields{
@@ -200,6 +204,7 @@ func (m *ScheduledEventsManager) collect() {
 				"resource":     "",
 				"eventStatus":  event.EventStatus,
 				"notBefore":    event.NotBefore,
+				"eventSource":  event.EventSource,
 			}).Debugf("found ScheduledEvent")
 		}
 	}

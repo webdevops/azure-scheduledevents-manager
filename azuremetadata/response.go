@@ -26,6 +26,8 @@ type (
 		Resources    []string `json:"Resources"`
 		EventStatus  string   `json:"EventStatus"`
 		NotBefore    string   `json:"NotBefore"`
+		Description  string   `json:"Description"`
+		EventSource  string   `json:"EventSource"`
 	}
 
 	AzureMetadataInstanceResponse struct {
