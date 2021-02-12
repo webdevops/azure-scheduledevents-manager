@@ -42,6 +42,7 @@ func main() {
 		ScheduledEventsUrl:  opts.AzureScheduledEventsApiUrl,
 		InstanceMetadataUrl: opts.AzureInstanceApiUrl,
 		Timeout:             &opts.AzureTimeout,
+		UserAgent:           fmt.Sprintf("azure-scheduledevents-manager/%v", gitTag),
 	}
 	azureMetadataClient.Init()
 

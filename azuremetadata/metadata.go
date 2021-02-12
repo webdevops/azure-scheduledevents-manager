@@ -13,6 +13,7 @@ type AzureMetadata struct {
 	InstanceMetadataUrl string
 	ScheduledEventsUrl  string
 	HttpClient          *http.Client
+	UserAgent           string
 }
 
 func (m *AzureMetadata) Init() {
@@ -35,6 +36,7 @@ func (m *AzureMetadata) FetchScheduledEvents() (*AzureScheduledEventResponse, er
 		return nil, err
 	}
 	req.Header.Add("Metadata", "true")
+	req.Header.Add("User-Agent", m.UserAgent)
 
 	resp, err := m.HttpClient.Do(req)
 	if err != nil {
@@ -62,6 +64,7 @@ func (m *AzureMetadata) FetchInstanceMetadata() (*AzureMetadataInstanceResponse,
 		return nil, err
 	}
 	req.Header.Add("Metadata", "true")
+	req.Header.Add("User-Agent", m.UserAgent)
 
 	resp, err := m.HttpClient.Do(req)
 	if err != nil {
@@ -94,6 +97,7 @@ func (m *AzureMetadata) ApproveScheduledEvent(event *AzureScheduledEvent) error 
 	}
 	req.Header.Add("Metadata", "true")
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Add("User-Agent", m.UserAgent)
 
 	resp, err := m.HttpClient.Do(req)
 	if err != nil {
