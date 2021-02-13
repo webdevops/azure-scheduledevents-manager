@@ -20,7 +20,8 @@ jobs:
         with:
           images: webdevops/azure-scheduledevents-manager,quay.io/webdevops/azure-scheduledevents-manager
           tag-latest: true
-          tag-semver: {{raw}}
+          tag-semver: |-
+            {{raw}}
           tag-schedule: nightly
 
       - name: Set up QEMU
@@ -62,7 +63,8 @@ jobs:
         with:
           images: webdevops/azure-scheduledevents-manager,quay.io/webdevops/azure-scheduledevents-manager
           tag-latest: false
-          tag-semver: {{raw}}-distroless
+          tag-semver: |-
+            {{raw}}-distroless
           tag-schedule: nightly-distroless
 
       - name: Set up QEMU
@@ -104,7 +106,8 @@ jobs:
       with:
         images: webdevops/azure-scheduledevents-manager,quay.io/webdevops/azure-scheduledevents-manager
         tag-latest: false
-        tag-semver: {{raw}}-kuberntes
+        tag-semver: |-
+          {{raw}}-kuberntes
         tag-schedule: nightly-kuberntes
 
     - name: Set up QEMU
