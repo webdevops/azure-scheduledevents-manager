@@ -17,8 +17,9 @@ RUN ./azure-scheduledevents-manager --help
 #############################################
 # FINAL IMAGE
 #############################################
-FROM ubuntu:20.04
-ENV LOG_JSON=1
+FROM gcr.io/distroless/base
+ENV LOG_JSON=1 \
+    DRAIN_MODE=noop
 COPY --from=build /go/src/github.com/webdevops/azure-scheduledevents-manager/azure-scheduledevents-manager /
 USER 1000
 ENTRYPOINT ["/azure-scheduledevents-manager"]

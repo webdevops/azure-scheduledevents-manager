@@ -7,7 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
 	"github.com/webdevops/azure-scheduledevents-manager/config"
-	"github.com/webdevops/azure-scheduledevents-manager/kubectl"
+	"github.com/webdevops/azure-scheduledevents-manager/drainmanager"
 	"github.com/webdevops/azure-scheduledevents-manager/manager"
 	"net/http"
 	"net/url"
@@ -39,47 +39,65 @@ func main() {
 
 	log.Infof("starting azure metadata client")
 	azureMetadataClient := &azuremetadata.AzureMetadata{
-		ScheduledEventsUrl:  opts.AzureScheduledEventsApiUrl,
-		InstanceMetadataUrl: opts.AzureInstanceApiUrl,
-		Timeout:             &opts.AzureTimeout,
+		ScheduledEventsUrl:  opts.Azure.ScheduledEventsApiUrl,
+		InstanceMetadataUrl: opts.Azure.InstanceApiUrl,
+		Timeout:             &opts.Azure.Timeout,
 		UserAgent:           fmt.Sprintf("azure-scheduledevents-manager/%v", gitTag),
 	}
 	azureMetadataClient.Init()
 
-	if opts.VmNodeName == "" {
+	if opts.Instance.VmNodeName == "" {
 		instanceMetadata, err := azureMetadataClient.FetchInstanceMetadata()
 		if err != nil {
 			panic(err)
 		}
 		log.Infof("detecting VM resource name")
-		opts.VmNodeName = instanceMetadata.Compute.Name
+		opts.Instance.VmNodeName = instanceMetadata.Compute.Name
 	} else {
 		log.Infof("using VM resource name from env")
 	}
-	log.Infof("using VM node: %v", opts.VmNodeName)
+	log.Infof("using VM node: %v", opts.Instance.VmNodeName)
 
-	log.Infof("init Kubernetes")
-	log.Infof("using Kubernetes nodename: %v", opts.KubeNodeName)
-	kubectlClient := &kubectl.KubernetesClient{
-		Conf: opts,
-	}
-	kubectlClient.SetNode(opts.KubeNodeName)
-	if opts.DrainEnable {
-		kubectlClient.Enable()
-	}
-	log.Infof("checking Kubernetes API server access")
-	kubectlClient.CheckConnection()
-
-	log.Infof("starting metrics collection")
 	manager := manager.ScheduledEventsManager{
 		Conf:                opts,
 		AzureMetadataClient: azureMetadataClient,
-		KubectlClient:       kubectlClient,
 	}
 	manager.Init()
+
+	switch opts.Drain.Mode {
+	case "kubernetes":
+		log.Infof("start \"kubernetes\" mode")
+		log.Infof("using Kubernetes nodename: %v", opts.Kubernetes.NodeName)
+		drain := &drainmanager.DrainManagerKubernetes{
+			Conf: opts,
+		}
+		drain.SetInstanceName(opts.Kubernetes.NodeName)
+		manager.DrainManager = drain
+	case "command":
+		log.Infof("start \"command\" mode")
+		drain := &drainmanager.DrainManagerCommand{
+			CommandTest:     opts.Command.Test.Cmd,
+			CommandDrain:    opts.Command.Drain.Cmd,
+			CommandUncordon: opts.Command.Uncordon.Cmd,
+		}
+		drain.SetInstanceName(opts.Instance.VmNodeName)
+		manager.DrainManager = drain
+	case "noop":
+		log.Infof("start \"noop\" mode")
+		drain := &drainmanager.DrainManagerNoop{}
+		drain.SetInstanceName(opts.Instance.VmNodeName)
+		manager.DrainManager = drain
+	}
+
+	if opts.Drain.Enable {
+		manager.DrainManager.Enable()
+		manager.DrainManager.Test()
+	}
+
+	log.Infof("starting manager")
 	manager.Start()
 
-	log.Infof("starting http server on %s", opts.ServerBind)
+	log.Infof("starting http server on %s", opts.General.ServerBind)
 	startHttpServer()
 }
 
@@ -130,7 +148,7 @@ func initArgparser() {
 	}
 
 	// validate instanceUrl url
-	instanceUrl, err := url.Parse(opts.AzureInstanceApiUrl)
+	instanceUrl, err := url.Parse(opts.Azure.InstanceApiUrl)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println()
@@ -144,14 +162,14 @@ func initArgparser() {
 	case "https":
 		break
 	default:
-		fmt.Printf("ApiURL scheme not allowed (must be http or https), got %v\n", opts.AzureInstanceApiUrl)
+		fmt.Printf("ApiURL scheme not allowed (must be http or https), got %v\n", opts.Azure.InstanceApiUrl)
 		fmt.Println()
 		argparser.WriteHelp(os.Stdout)
 		os.Exit(1)
 	}
 
 	// validate scheduledEventsUrl url
-	scheduledEventsUrl, err := url.Parse(opts.AzureScheduledEventsApiUrl)
+	scheduledEventsUrl, err := url.Parse(opts.Azure.ScheduledEventsApiUrl)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println()
@@ -166,14 +184,33 @@ func initArgparser() {
 	case "https":
 		break
 	default:
-		fmt.Printf("ApiURL scheme not allowed (must be http or https), got %v\n", opts.AzureScheduledEventsApiUrl)
+		fmt.Printf("ApiURL scheme not allowed (must be http or https), got %v\n", opts.Azure.ScheduledEventsApiUrl)
 		fmt.Println()
 		argparser.WriteHelp(os.Stdout)
 		os.Exit(1)
+	}
+
+	if opts.Drain.Enable {
+		switch opts.Drain.Mode {
+		case "kubernetes":
+			if opts.Kubernetes.NodeName == "" {
+				fmt.Println("kubernetes node name must be set in kubernetes drain mode")
+				fmt.Println()
+				argparser.WriteHelp(os.Stdout)
+				os.Exit(1)
+			}
+		case "command":
+		case "noop":
+		default:
+			fmt.Println("drain enabled but no drain mode set")
+			fmt.Println()
+			argparser.WriteHelp(os.Stdout)
+			os.Exit(1)
+		}
 	}
 }
 
 func startHttpServer() {
 	http.Handle("/metrics", promhttp.Handler())
-	log.Fatal(http.ListenAndServe(opts.ServerBind, nil))
+	log.Fatal(http.ListenAndServe(opts.General.ServerBind, nil))
 }

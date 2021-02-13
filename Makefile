@@ -27,8 +27,14 @@ vendor:
 image: build
 	docker build -t $(PROJECT_NAME):$(GIT_TAG) .
 
+.PHONY: build-push-development
 build-push-development:
-	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) -t webdevops/$(PROJECT_NAME):development . && docker push webdevops/$(PROJECT_NAME):development
+	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) --file=Dockerfile -t webdevops/$(PROJECT_NAME):development .
+	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) --file=Dockerfile.kubernetes -t webdevops/$(PROJECT_NAME):development-kubernetes .
+	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) --file=Dockerfile.distroless -t webdevops/$(PROJECT_NAME):development-distroless .
+	docker push	webdevops/$(PROJECT_NAME):development
+	docker push	webdevops/$(PROJECT_NAME):development-kubernetes
+	docker push	webdevops/$(PROJECT_NAME):development-distroless
 
 .PHONY: test
 test:

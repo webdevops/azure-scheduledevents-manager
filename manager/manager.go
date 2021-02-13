@@ -7,7 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
 	"github.com/webdevops/azure-scheduledevents-manager/config"
-	"github.com/webdevops/azure-scheduledevents-manager/kubectl"
+	"github.com/webdevops/azure-scheduledevents-manager/drainmanager"
 	"time"
 )
 
@@ -19,7 +19,7 @@ type (
 
 		Conf                config.Opts
 		AzureMetadataClient *azuremetadata.AzureMetadata
-		KubectlClient       *kubectl.KubernetesClient
+		DrainManager        drainmanager.DrainManager
 
 		prometheus struct {
 			documentIncarnation *prometheus.GaugeVec
@@ -34,6 +34,7 @@ type (
 
 func (m *ScheduledEventsManager) Init() {
 	m.initMetrics()
+	m.DrainManager = &drainmanager.DrainManagerNoop{}
 }
 
 func (m *ScheduledEventsManager) initMetrics() {
@@ -96,7 +97,7 @@ func (m *ScheduledEventsManager) Start() {
 	go func() {
 		for {
 			m.collect()
-			time.Sleep(m.Conf.ScrapeTime)
+			time.Sleep(m.Conf.General.ScrapeTime)
 		}
 	}()
 }
@@ -105,7 +106,7 @@ func (m *ScheduledEventsManager) collect() {
 	var approveEvent *azuremetadata.AzureScheduledEvent
 	triggerDrain := false
 
-	drainTimeThreshold := float64(time.Now().Add(m.Conf.DrainNotBefore).Unix())
+	drainTimeThreshold := float64(time.Now().Add(m.Conf.Drain.NotBefore).Unix())
 
 	startTime := time.Now()
 	scheduledEvents, err := m.AzureMetadataClient.FetchScheduledEvents()
@@ -113,7 +114,7 @@ func (m *ScheduledEventsManager) collect() {
 		m.apiErrorCount++
 		m.prometheus.requestErrors.With(prometheus.Labels{}).Inc()
 
-		if m.Conf.AzureErrorThreshold <= 0 || m.apiErrorCount <= m.Conf.AzureErrorThreshold {
+		if m.Conf.Azure.ErrorThreshold <= 0 || m.apiErrorCount <= m.Conf.Azure.ErrorThreshold {
 			log.Errorf("failed API call: %s", err)
 			return
 		} else {
@@ -121,7 +122,7 @@ func (m *ScheduledEventsManager) collect() {
 		}
 	}
 
-	if m.Conf.MetricsRequestStats {
+	if m.Conf.Metrics.RequestStats {
 		duration := time.Since(startTime)
 		m.prometheus.request.With(prometheus.Labels{}).Observe(duration.Seconds())
 	}
@@ -167,7 +168,7 @@ func (m *ScheduledEventsManager) collect() {
 						"eventSource":  event.EventSource,
 					}).Set(eventValue)
 
-				if m.Conf.VmNodeName != "" && resource == m.Conf.VmNodeName {
+				if m.Conf.Instance.VmNodeName != "" && resource == m.Conf.Instance.VmNodeName {
 					log.WithFields(log.Fields{
 						"eventID":      event.EventId,
 						"eventType":    event.EventType,
@@ -179,7 +180,7 @@ func (m *ScheduledEventsManager) collect() {
 					}).Infof("detected ScheduledEvent %v with %v in %v for current node", event.EventId, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()) //nolint:gosimple
 					approveEvent = &event
 					if eventValue == 1 || drainTimeThreshold >= eventValue {
-						if stringArrayContainsCi(m.Conf.DrainEvents, event.EventType) {
+						if stringArrayContainsCi(m.Conf.Drain.Events, event.EventType) {
 							triggerDrain = true
 						}
 					}
@@ -218,29 +219,29 @@ func (m *ScheduledEventsManager) collect() {
 
 		// if event is gone, ensure uncordon of node
 		if !m.nodeUncordon {
-			log.Infof("ensuring uncordon of node %v", m.Conf.KubeNodeName)
-			m.KubectlClient.NodeUncordon()
+			log.Infof("ensuring uncordon of instance %v", m.instanceName())
+			m.DrainManager.Uncordon()
 			m.nodeDrained = false
 			m.nodeUncordon = true
 		}
 	}
 
-	if m.Conf.KubeNodeName != "" {
+	if m.DrainManager.IsEnabled() {
 		if approveEvent != nil && triggerDrain {
 			eventLogger := log.WithField("eventID", approveEvent.EventId)
 
 			if !m.nodeDrained {
-				eventLogger.Infof("ensuring drain of node %v", m.Conf.KubeNodeName)
-				m.sendNotification("draining K8s node %v (upcoming Azure ScheduledEvent %v with %s)", m.Conf.KubeNodeName, approveEvent.EventId, approveEvent.EventType)
+				eventLogger.Infof("ensuring drain of instance %v", m.instanceName())
+				m.sendNotification("draining instance %v (upcoming Azure ScheduledEvent %v with %s)", m.instanceName(), approveEvent.EventId, approveEvent.EventType)
 				m.prometheus.eventDrain.WithLabelValues(approveEvent.EventId, "start").SetToCurrentTime()
-				m.KubectlClient.NodeDrain()
+				m.DrainManager.Drain(approveEvent)
 				m.prometheus.eventDrain.WithLabelValues(approveEvent.EventId, "finish").SetToCurrentTime()
 				eventLogger.Infof("drained successfully")
 				m.nodeDrained = true
 				m.nodeUncordon = false
 			}
 
-			if m.Conf.AzureApproveScheduledEvent {
+			if m.Conf.Azure.ApproveScheduledEvent {
 				eventLogger.Infof("approving ScheduledEvent %v with %v", approveEvent.EventId, approveEvent.EventType)
 				if err := m.AzureMetadataClient.ApproveScheduledEvent(approveEvent); err == nil {
 					m.prometheus.eventApproval.WithLabelValues(approveEvent.EventId).SetToCurrentTime()
@@ -251,8 +252,8 @@ func (m *ScheduledEventsManager) collect() {
 			}
 		} else {
 			if !m.nodeUncordon {
-				log.Infof("ensuring uncordon of node %v", m.Conf.KubeNodeName)
-				m.KubectlClient.NodeUncordon()
+				log.Infof("ensuring uncordon of instance %v", m.instanceName())
+				m.DrainManager.Uncordon()
 				m.nodeDrained = false
 				m.nodeUncordon = true
 			}
@@ -260,11 +261,21 @@ func (m *ScheduledEventsManager) collect() {
 	}
 }
 
+func (m *ScheduledEventsManager) instanceName() string {
+	drainManagerInstanceName := m.DrainManager.InstanceName()
+
+	if drainManagerInstanceName == m.Conf.Instance.VmNodeName {
+		return drainManagerInstanceName
+	} else {
+		return fmt.Sprintf("%v (vm: %v)", drainManagerInstanceName, m.Conf.Instance.VmNodeName)
+	}
+}
+
 func (m *ScheduledEventsManager) sendNotification(message string, args ...interface{}) {
 	message = fmt.Sprintf(message, args...)
-	message = fmt.Sprintf(m.Conf.NotificationMsgTemplate, message)
+	message = fmt.Sprintf(m.Conf.Notification.MsgTemplate, message)
 
-	for _, url := range m.Conf.Notification {
+	for _, url := range m.Conf.Notification.List {
 		if err := shoutrrr.Send(url, message); err != nil {
 			log.Errorf("unable to send shoutrrr notification: %v", err)
 		}

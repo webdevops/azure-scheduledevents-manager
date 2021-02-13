@@ -1,20 +1,30 @@
-Azure ScheduledEvents Manager
-==============================
+# Azure ScheduledEvents Manager
 
 [![license](https://img.shields.io/github/license/webdevops/azure-scheduledevents-manager.svg)](https://github.com/webdevops/azure-scheduledevents-manager/blob/master/LICENSE)
 [![DockerHub](https://img.shields.io/badge/DockerHub-webdevops%2Fazure--scheduledevents--manager-blue)](https://hub.docker.com/r/webdevops/azure-scheduledevents-manager/)
 [![Quay.io](https://img.shields.io/badge/Quay.io-webdevops%2Fazure--scheduledevents--manager-blue)](https://quay.io/repository/webdevops/azure-scheduledevents-manager)
 
-Manages Kubernetes nodes in specific [Azure ScheduledEvents](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/scheduled-events) (planned VM maintenance) and exports the status as metric.
+Manager for Linux VMs and Kubernetes clusters for [Azure ScheduledEvents](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/scheduled-events) (planned VM maintenance) with Prometheus metrics support.
 Drains nodes automatically when `Redeploy`, `Reboot`, `Preemt` or `Terminate` is detected and is able to approve (start event ASAP) the event automatically.
 
+### Kubernetes support:
+
+Automatically drains and uncordon nodes before ScheduledEvents (Reboot, Redeploy, Terminate) to ensure service reliability.
+
+### VM support
+
+Automatically executes commands for drain and uncordon before ScheduledEvents (Reboot, Redeploy, Terminate) to ensure service reliability.
+
+
+
+
+Manages Kubernetes nodes 
 It fetches informations from `http://169.254.169.254/metadata/scheduledevents?api-version=2017-08-01`
 and exports the parsed information as metric to Prometheus.
 
 Supports [shoutrrr](https://containrrr.github.io/shoutrrr/) notifications.
 
-Configuration
--------------
+## Configuration
 
 ```
 Usage:
@@ -52,8 +62,7 @@ Help Options:
 
 ```
 
-Metrics
--------
+## Metrics
 
 | Metric                                      | Description                                                                           |
 |---------------------------------------------|---------------------------------------------------------------------------------------|
@@ -64,8 +73,56 @@ Metrics
 | `azure_scheduledevent_request`              | Request histogram (count and request duration; disabled by default)                   |
 | `azure_scheduledevent_request_error`        | Counter for failed requests                                                           |
 
+## VM support
 
-Kubernetes deployment
----------------------
+This example executes `/host-drain.sh` on the host when ScheduledEvent is received.
+If it runs in an Docker container it needs access to the host (privileged, pid=host, must run as root).
+
+Run via docker:
+```
+docker run --restart=always --read-only --user=0 --privileged --pid=host \
+    webdevops/azure-scheduledevents-manager:development \
+    --drain.mode=command \
+    --drain.enable \
+    --drain.not-before=15m \
+    --command.test.cmd="nsenter -m/proc/1/ns/mnt -- /usr/bin/test -x /host-drain.sh" \
+    --command.drain.cmd="nsenter -m/proc/1/ns/mnt -- /host-drain.sh \$EVENT_TYPE"
+```
+
+This example will also pass
+
+docker-compose:
+```
+version: "3"
+services:
+  scheduledEvents:
+    image: webdevops/azure-scheduledevents-manager:development
+    command:
+    - --drain.mode=command
+    - --drain.enable
+    - --drain.not-before=15m
+    - --azure.approve-scheduledevent
+    - --command.test.cmd="nsenter -m/proc/1/ns/mnt -- /usr/bin/test -x /host-drain.sh"
+    - --command.drain.cmd="nsenter -m/proc/1/ns/mnt -- /host-drain.sh $$EVENT_TYPE"
+    user: 0:0
+    privileged: true
+    pid: "host"
+    read_only: true
+    restart: always
+```
+
+### Environment variables
+
+all Docker environment variables are passed to drain command, also following event variables:
+
+- EVENT_ID
+- EVENT_SOURCE
+- EVENT_STATUS
+- EVENT_TYPE
+- EVENT_NOTBEFORE
+- EVENT_RESOURCES
+- EVENT_RESOURCETYPE
+
+## Kubernetes deployment
 
 see [deployment](/deployment)
