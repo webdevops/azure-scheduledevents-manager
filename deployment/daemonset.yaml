@@ -31,7 +31,6 @@ spec:
       containers:
         - name: azure-scheduledevents
           image: webdevops/azure-scheduledevents-manager:latest
-          imagePullPolicy: Always
           env:
             - name: AZURE_APPROVE_SCHEDULEDEVENT
               value: "true"
