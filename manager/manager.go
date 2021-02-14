@@ -228,9 +228,13 @@ func (m *ScheduledEventsManager) collect() {
 		// if event is gone, ensure uncordon of node
 		if !m.nodeUncordon {
 			log.Infof("ensuring uncordon of instance %v", m.instanceName())
-			m.DrainManager.Uncordon()
-			m.nodeDrained = false
-			m.nodeUncordon = true
+			if m.DrainManager.Uncordon() {
+				log.Infof("uncordon finished")
+				m.nodeDrained = false
+				m.nodeUncordon = true
+			} else {
+				log.Infof("uncordon failed")
+			}
 		}
 	}
 
