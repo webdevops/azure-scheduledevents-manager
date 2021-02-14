@@ -35,9 +35,8 @@ Application Options:
                                         http://169.254.169.254/metadata/instance?api-version=2019-08-01)
                                         [$AZURE_METADATAINSTANCE_URL]
       --azure.scheduledevents-url=      Azure ScheduledEvents API URL (default:
-                                        http://169.254.169.254/metadata/scheduledevents?api-version=2019-0-
-
-                                        8-01) [$AZURE_SCHEDULEDEVENTS_URL]
+                                        http://169.254.169.254/metadata/scheduledevents?api-version=2019-0-8-01)
+                                        [$AZURE_SCHEDULEDEVENTS_URL]
       --azure.timeout=                  Azure API timeout (seconds) (default: 30s) [$AZURE_TIMEOUT]
       --azure.error-threshold=          Azure API error threshold (after which app will panic) (default:
                                         0) [$AZURE_ERROR_THRESHOLD]
