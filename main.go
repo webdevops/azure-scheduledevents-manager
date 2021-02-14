@@ -64,33 +64,25 @@ func main() {
 	}
 	manager.Init()
 
-	switch opts.Drain.Mode {
-	case "kubernetes":
-		log.Infof("start \"kubernetes\" mode")
-		log.Infof("using Kubernetes nodename: %v", opts.Kubernetes.NodeName)
-		drain := &drainmanager.DrainManagerKubernetes{
-			Conf: opts,
-		}
-		drain.SetInstanceName(opts.Kubernetes.NodeName)
-		manager.DrainManager = drain
-	case "command":
-		log.Infof("start \"command\" mode")
-		drain := &drainmanager.DrainManagerCommand{
-			CommandTest:     opts.Command.Test.Cmd,
-			CommandDrain:    opts.Command.Drain.Cmd,
-			CommandUncordon: opts.Command.Uncordon.Cmd,
-		}
-		drain.SetInstanceName(opts.Instance.VmNodeName)
-		manager.DrainManager = drain
-	case "noop":
-		log.Infof("start \"noop\" mode")
-		drain := &drainmanager.DrainManagerNoop{}
-		drain.SetInstanceName(opts.Instance.VmNodeName)
-		manager.DrainManager = drain
-	}
-
 	if opts.Drain.Enable {
-		manager.DrainManager.Enable()
+		switch opts.Drain.Mode {
+		case "kubernetes":
+			log.Infof("start \"kubernetes\" mode")
+			log.Infof("using Kubernetes nodename: %v", opts.Kubernetes.NodeName)
+			drain := &drainmanager.DrainManagerKubernetes{}
+			drain.SetInstanceName(opts.Kubernetes.NodeName)
+			manager.DrainManager = drain
+		case "command":
+			log.Infof("start \"command\" mode")
+			drain := &drainmanager.DrainManagerCommand{
+				Conf: opts,
+			}
+			drain.SetInstanceName(opts.Instance.VmNodeName)
+			manager.DrainManager = drain
+		default:
+			log.Panicf("drain mode \"%v\" is not valid", opts.Drain.Mode)
+		}
+
 		manager.DrainManager.Test()
 	}
 
@@ -200,7 +192,6 @@ func initArgparser() {
 				os.Exit(1)
 			}
 		case "command":
-		case "noop":
 		default:
 			fmt.Println("drain enabled but no drain mode set")
 			fmt.Println()

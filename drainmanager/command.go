@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
+	"github.com/webdevops/azure-scheduledevents-manager/config"
 	"os"
 	"os/exec"
 	"strings"
@@ -11,11 +12,8 @@ import (
 
 type DrainManagerCommand struct {
 	DrainManager
-	enabled         bool
-	CommandTest     string
-	CommandDrain    string
-	CommandUncordon string
-	instanceName    string
+	Conf         config.Opts
+	instanceName string
 }
 
 func (m *DrainManagerCommand) SetInstanceName(name string) {
@@ -26,29 +24,21 @@ func (m *DrainManagerCommand) InstanceName() string {
 	return m.instanceName
 }
 
-func (m *DrainManagerCommand) Enable() {
-	m.enabled = true
-}
-
-func (m *DrainManagerCommand) IsEnabled() bool {
-	return m.enabled
-}
-
 func (m *DrainManagerCommand) Test() {
-	if m.CommandTest != "" {
-		m.exec(m.CommandTest, nil)
+	if m.Conf.Command.Test.Cmd != "" {
+		m.exec(m.Conf.Command.Test.Cmd, nil)
 	}
 }
 
 func (m *DrainManagerCommand) Drain(event *azuremetadata.AzureScheduledEvent) {
-	if m.CommandDrain != "" {
-		m.exec(m.CommandDrain, event)
+	if m.Conf.Command.Drain.Cmd != "" {
+		m.exec(m.Conf.Command.Drain.Cmd, event)
 	}
 }
 
 func (m *DrainManagerCommand) Uncordon() {
-	if m.CommandUncordon != "" {
-		m.exec(m.CommandUncordon, nil)
+	if m.Conf.Command.Uncordon.Cmd != "" {
+		m.exec(m.Conf.Command.Uncordon.Cmd, nil)
 	}
 }
 

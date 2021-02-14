@@ -34,7 +34,7 @@ type (
 
 func (m *ScheduledEventsManager) Init() {
 	m.initMetrics()
-	m.DrainManager = &drainmanager.DrainManagerNoop{}
+	m.DrainManager = nil
 }
 
 func (m *ScheduledEventsManager) initMetrics() {
@@ -52,7 +52,15 @@ func (m *ScheduledEventsManager) initMetrics() {
 			Name: "azure_scheduledevent_event",
 			Help: "Azure ScheduledEvent",
 		},
-		[]string{"eventID", "eventType", "resourceType", "resource", "eventStatus", "notBefore", "eventSource"},
+		[]string{
+			"eventID",
+			"eventType",
+			"resourceType",
+			"resource",
+			"eventStatus",
+			"notBefore",
+			"eventSource",
+		},
 	)
 	prometheus.MustRegister(m.prometheus.event)
 
@@ -177,7 +185,7 @@ func (m *ScheduledEventsManager) collect() {
 						"eventStatus":  event.EventStatus,
 						"notBefore":    event.NotBefore,
 						"eventSource":  event.EventSource,
-					}).Infof("detected ScheduledEvent %v with %v in %v for current node", event.EventId, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()) //nolint:gosimple
+					}).Infof("detected ScheduledEvent %v with %v by %v in %v for current node", event.EventId, event.EventSource, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()) //nolint:gosimple
 					approveEvent = &event
 					if eventValue == 1 || drainTimeThreshold >= eventValue {
 						if stringArrayContainsCi(m.Conf.Drain.Events, event.EventType) {
@@ -226,7 +234,7 @@ func (m *ScheduledEventsManager) collect() {
 		}
 	}
 
-	if m.DrainManager.IsEnabled() {
+	if m.Conf.Drain.Enable {
 		if approveEvent != nil && triggerDrain {
 			eventLogger := log.WithField("eventID", approveEvent.EventId)
 

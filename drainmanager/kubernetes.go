@@ -24,14 +24,6 @@ func (m *DrainManagerKubernetes) InstanceName() string {
 	return m.nodeName
 }
 
-func (m *DrainManagerKubernetes) Enable() {
-	m.enabled = true
-}
-
-func (m *DrainManagerKubernetes) IsEnabled() bool {
-	return m.enabled
-}
-
 func (m *DrainManagerKubernetes) Test() {
 	m.execGet("node", m.nodeName)
 }

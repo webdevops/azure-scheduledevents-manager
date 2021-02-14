@@ -5,24 +5,17 @@
 [![Quay.io](https://img.shields.io/badge/Quay.io-webdevops%2Fazure--scheduledevents--manager-blue)](https://quay.io/repository/webdevops/azure-scheduledevents-manager)
 
 Manager for Linux VMs and Kubernetes clusters for [Azure ScheduledEvents](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/scheduled-events) (planned VM maintenance) with Prometheus metrics support.
-Drains nodes automatically when `Redeploy`, `Reboot`, `Preemt` or `Terminate` is detected and is able to approve (start event ASAP) the event automatically.
+Drains nodes automatically when `Redeploy`, `Reboot`, `Preemt` or `Terminate` is detected and approves (start event ASAP) the event automatically.
 
-### Kubernetes support:
-
+#### Kubernetes support
 Automatically drains and uncordon nodes before ScheduledEvents (Reboot, Redeploy, Terminate) to ensure service reliability.
 
-### VM support
-
+#### VM support
 Automatically executes commands for drain and uncordon before ScheduledEvents (Reboot, Redeploy, Terminate) to ensure service reliability.
 
+#### Notification support
 
-
-
-Manages Kubernetes nodes 
-It fetches informations from `http://169.254.169.254/metadata/scheduledevents?api-version=2017-08-01`
-and exports the parsed information as metric to Prometheus.
-
-Supports [shoutrrr](https://containrrr.github.io/shoutrrr/) notifications.
+Supports [shoutrrr](https://containrrr.github.io/shoutrrr/) for notifications.
 
 ## Configuration
 
@@ -31,35 +24,56 @@ Usage:
   azure-scheduledevents-manager [OPTIONS]
 
 Application Options:
-      --debug                         debug mode [$DEBUG]
-  -v, --verbose                       verbose mode [$VERBOSE]
-      --log.json                      Switch log output to json format [$LOG_JSON]
-      --bind=                         Server address (default: :8080) [$SERVER_BIND]
-      --scrape-time=                  Scrape time in seconds (default: 1m) [$SCRAPE_TIME]
-      --azure.metadatainstance-url=   Azure ScheduledEvents API URL (default: http://169.254.169.254/metadata/instance?api-version=2019-08-01) [$AZURE_METADATAINSTANCE_URL]
-      --azure.scheduledevents-url=    Azure ScheduledEvents API URL (default: http://169.254.169.254/metadata/scheduledevents?api-version=2019-08-01) [$AZURE_SCHEDULEDEVENTS_URL]
-      --azure.timeout=                Azure API timeout (seconds) (default: 30s) [$AZURE_TIMEOUT]
-      --azure.error-threshold=        Azure API error threshold (after which app will panic) (default: 0) [$AZURE_ERROR_THRESHOLD]
-      --azure.approve-scheduledevent  Approve ScheduledEvent and start (if possible) start them ASAP [$AZURE_APPROVE_SCHEDULEDEVENT]
-      --vm.nodename=                  VM node name [$VM_NODENAME]
-      --kube.nodename=                Kubernetes node name [$KUBE_NODENAME]
-      --drain.enable                  Enable drain handling [$DRAIN_ENABLE]
-      --drain.events=                 Enable drain handling (default: reboot, redeploy, preempt, terminate) [$DRAIN_EVENTS]
-      --drain.not-before=             Dont drain before this time (default: 5m) [$DRAIN_NOT_BEFORE]
-      --drain.delete-local-data       Continue even if there are pods using emptyDir (local data that will be deleted when the node is drained) [$DRAIN_DELETE_LOCAL_DATA]
-      --drain.force                   Continue even if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet [$DRAIN_FORCE]
-      --drain.grace-period=           Period of time in seconds given to each pod to terminate gracefully. If negative, the default value specified in the pod will be used. [$DRAIN_GRACE_PERIOD]
-      --drain.ignore-daemonsets       Ignore DaemonSet-managed pods. [$DRAIN_IGNORE_DAEMONSETS]
-      --drain.pod-selector=           Label selector to filter pods on the node [$DRAIN_POD_SELECTOR]
-      --drain.timeout=                The length of time to wait before giving up, zero means infinite (default: 0s) [$DRAIN_TIMEOUT]
-      --drain.dry-run                 Do not drain, uncordon or label any node [$DRAIN_DRY_RUN]
-      --notification=                 Shoutrrr url for notifications (https://containrrr.github.io/shoutrrr/) [$NOTIFICATION]
-      --notification.messagetemplate= Notification template (default: %v) [$NOTIFICATION_MESSAGE_TEMPLATE]
-      --metrics-requeststats          Enable request stats metrics [$METRICS_REQUESTSTATS]
+      --debug                           debug mode [$DEBUG]
+  -v, --verbose                         verbose mode [$VERBOSE]
+      --log.json                        Switch log output to json format [$LOG_JSON]
+      --bind=                           Server address (default: :8080) [$SERVER_BIND]
+      --scrape-time=                    Scrape time in seconds (default: 1m) [$SCRAPE_TIME]
+      --azure.metadatainstance-url=     Azure ScheduledEvents API URL (default:
+                                        http://169.254.169.254/metadata/instance?api-version=2019-08-01)
+                                        [$AZURE_METADATAINSTANCE_URL]
+      --azure.scheduledevents-url=      Azure ScheduledEvents API URL (default:
+                                        http://169.254.169.254/metadata/scheduledevents?api-version=2019-0-
+
+                                        8-01) [$AZURE_SCHEDULEDEVENTS_URL]
+      --azure.timeout=                  Azure API timeout (seconds) (default: 30s) [$AZURE_TIMEOUT]
+      --azure.error-threshold=          Azure API error threshold (after which app will panic) (default:
+                                        0) [$AZURE_ERROR_THRESHOLD]
+      --azure.approve-scheduledevent    Approve ScheduledEvent and start (if possible) start them ASAP
+                                        [$AZURE_APPROVE_SCHEDULEDEVENT]
+      --vm.nodename=                    VM node name [$VM_NODENAME]
+      --drain.enable                    Enable drain handling [$DRAIN_ENABLE]
+      --drain.mode=[kubernetes|command] Mode [$DRAIN_MODE]
+      --drain.not-before=               Dont drain before this time (default: 5m) [$DRAIN_NOT_BEFORE]
+      --drain.events=                   Enable drain handling (default: reboot, redeploy, preempt,
+                                        terminate) [$DRAIN_EVENTS]
+      --command.test.cmd=               Test command in command mode [$COMMAND_TEST_CMD]
+      --command.drain.cmd=              Drain command in command mode [$COMMAND_DRAIN_CMD]
+      --command.uncordon.cmd=           Uncordon command in command mode [$COMMAND_UNCORDON_CMD]
+      --kube.nodename=                  Kubernetes node name [$KUBE_NODENAME]
+      --kube.drain.delete-local-data    Continue even if there are pods using emptyDir (local data that
+                                        will be deleted when the node is drained)
+                                        [$KUBE_DRAIN_DELETE_LOCAL_DATA]
+      --kube.drain.force                Continue even if there are pods not managed by a
+                                        ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet
+                                        [$KUBE_DRAIN_FORCE]
+      --kube.drain.grace-period=        Period of time in seconds given to each pod to terminate
+                                        gracefully. If negative, the default value specified in the pod
+                                        will be used. [$KUBE_DRAIN_GRACE_PERIOD]
+      --kube.drain.ignore-daemonsets    Ignore DaemonSet-managed pods. [$KUBE_DRAIN_IGNORE_DAEMONSETS]
+      --kube.drain.pod-selector=        Label selector to filter pods on the node
+                                        [$KUBE_DRAIN_POD_SELECTOR]
+      --kube.drain.timeout=             The length of time to wait before giving up, zero means infinite
+                                        (default: 0s) [$KUBE_DRAIN_TIMEOUT]
+      --kube.drain.dry-run              Do not drain, uncordon or label any node [$KUBE_DRAIN_DRY_RUN]
+      --notification=                   Shoutrrr url for notifications
+                                        (https://containrrr.github.io/shoutrrr/) [$NOTIFICATION]
+      --notification.messagetemplate=   Notification template (default: %v)
+                                        [$NOTIFICATION_MESSAGE_TEMPLATE]
+      --metrics-requeststats            Enable request stats metrics [$METRICS_REQUESTSTATS]
 
 Help Options:
-  -h, --help                          Show this help message
-
+  -h, --help                            Show this help message
 ```
 
 ## Metrics
@@ -76,14 +90,15 @@ Help Options:
 ## VM support
 
 This example executes `/host-drain.sh` on the host when ScheduledEvent is received.
-If it runs in an Docker container it needs access to the host (privileged, pid=host, must run as root).
+The docker container needs to access the host so it needs privileged permissions (privileged, pid=host, must run as root).
+Container can be run as readonly container.
 
 Run via docker:
 ```
 docker run --restart=always --read-only --user=0 --privileged --pid=host \
     webdevops/azure-scheduledevents-manager:development \
-    --drain.mode=command \
     --drain.enable \
+    --drain.mode=command \
     --drain.not-before=15m \
     --command.test.cmd="nsenter -m/proc/1/ns/mnt -- /usr/bin/test -x /host-drain.sh" \
     --command.drain.cmd="nsenter -m/proc/1/ns/mnt -- /host-drain.sh \$EVENT_TYPE"
@@ -98,8 +113,8 @@ services:
   scheduledEvents:
     image: webdevops/azure-scheduledevents-manager:development
     command:
-    - --drain.mode=command
     - --drain.enable
+    - --drain.mode=command
     - --drain.not-before=15m
     - --azure.approve-scheduledevent
     - --command.test.cmd="nsenter -m/proc/1/ns/mnt -- /usr/bin/test -x /host-drain.sh"

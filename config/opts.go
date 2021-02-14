@@ -36,7 +36,7 @@ type (
 
 		Drain struct {
 			Enable    bool          `long:"drain.enable"             env:"DRAIN_ENABLE"                description:"Enable drain handling"`
-			Mode      string        `long:"drain.mode"               env:"DRAIN_MODE"                  description:"Mode" choice:"kubernetes" choice:"command" choice:"noop"` //nolint:golint,staticcheck
+			Mode      string        `long:"drain.mode"               env:"DRAIN_MODE"                  description:"Mode" choice:"kubernetes" choice:"command"` //nolint:golint,staticcheck
 			NotBefore time.Duration `long:"drain.not-before"         env:"DRAIN_NOT_BEFORE"            description:"Dont drain before this time" default:"5m"`
 			Events    []string      `long:"drain.events"             env:"DRAIN_EVENTS" env-delim:" "  description:"Enable drain handling" default:"reboot" default:"redeploy" default:"preempt" default:"terminate"` //nolint:staticcheck
 		}
