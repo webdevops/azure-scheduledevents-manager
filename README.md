@@ -89,6 +89,7 @@ docker run --restart=always --read-only --user=0 --privileged --pid=host \
     --drain.enable \
     --drain.mode=command \
     --drain.not-before=15m \
+    --azure.approve-scheduledevent \
     --command.test.cmd="nsenter -m/proc/1/ns/mnt -- /usr/bin/test -x /host-drain.sh" \
     --command.drain.cmd="nsenter -m/proc/1/ns/mnt -- /host-drain.sh \$EVENT_TYPE"
 ```
