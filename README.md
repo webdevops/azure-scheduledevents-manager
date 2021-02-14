@@ -10,6 +10,8 @@ Drains nodes automatically when `Redeploy`, `Reboot`, `Preemt` or `Terminate` is
 #### Kubernetes support
 Automatically drains and uncordon nodes before ScheduledEvents (Reboot, Redeploy, Terminate) to ensure service reliability.
 
+AKS and custom Kubernetes clusters on Azure are supported.
+
 #### VM support
 Automatically executes commands for drain and uncordon before ScheduledEvents (Reboot, Redeploy, Terminate) to ensure service reliability.
 
@@ -51,20 +53,7 @@ Application Options:
       --command.drain.cmd=              Drain command in command mode [$COMMAND_DRAIN_CMD]
       --command.uncordon.cmd=           Uncordon command in command mode [$COMMAND_UNCORDON_CMD]
       --kube.nodename=                  Kubernetes node name [$KUBE_NODENAME]
-      --kube.drain.delete-local-data    Continue even if there are pods using emptyDir (local data that
-                                        will be deleted when the node is drained)
-                                        [$KUBE_DRAIN_DELETE_LOCAL_DATA]
-      --kube.drain.force                Continue even if there are pods not managed by a
-                                        ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet
-                                        [$KUBE_DRAIN_FORCE]
-      --kube.drain.grace-period=        Period of time in seconds given to each pod to terminate
-                                        gracefully. If negative, the default value specified in the pod
-                                        will be used. [$KUBE_DRAIN_GRACE_PERIOD]
-      --kube.drain.ignore-daemonsets    Ignore DaemonSet-managed pods. [$KUBE_DRAIN_IGNORE_DAEMONSETS]
-      --kube.drain.pod-selector=        Label selector to filter pods on the node
-                                        [$KUBE_DRAIN_POD_SELECTOR]
-      --kube.drain.timeout=             The length of time to wait before giving up, zero means infinite
-                                        (default: 0s) [$KUBE_DRAIN_TIMEOUT]
+      --kube.drain.args=                Arguments for kubectl drain [$KUBE_DRAIN_ARGS]
       --kube.drain.dry-run              Do not drain, uncordon or label any node [$KUBE_DRAIN_DRY_RUN]
       --notification=                   Shoutrrr url for notifications
                                         (https://containrrr.github.io/shoutrrr/) [$NOTIFICATION]

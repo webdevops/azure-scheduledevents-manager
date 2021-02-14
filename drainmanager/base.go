@@ -7,7 +7,7 @@ type (
 		SetInstanceName(name string)
 		InstanceName() string
 		Test()
-		Drain(event *azuremetadata.AzureScheduledEvent)
-		Uncordon()
+		Drain(event *azuremetadata.AzureScheduledEvent) bool
+		Uncordon() bool
 	}
 )

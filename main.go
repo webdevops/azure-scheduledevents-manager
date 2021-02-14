@@ -69,7 +69,9 @@ func main() {
 		case "kubernetes":
 			log.Infof("start \"kubernetes\" mode")
 			log.Infof("using Kubernetes nodename: %v", opts.Kubernetes.NodeName)
-			drain := &drainmanager.DrainManagerKubernetes{}
+			drain := &drainmanager.DrainManagerKubernetes{
+				Conf: opts,
+			}
 			drain.SetInstanceName(opts.Kubernetes.NodeName)
 			manager.DrainManager = drain
 		case "command":

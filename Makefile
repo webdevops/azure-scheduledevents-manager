@@ -30,11 +30,13 @@ image: build
 .PHONY: build-push-development
 build-push-development:
 	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) --file=Dockerfile -t webdevops/$(PROJECT_NAME):development .
-	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) --file=Dockerfile.kubernetes -t webdevops/$(PROJECT_NAME):development-ubuntu .
+	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) --file=Dockerfile.ubuntu -t webdevops/$(PROJECT_NAME):development-ubuntu .
+	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) --file=Dockerfile.alpine -t webdevops/$(PROJECT_NAME):development-alpine .
 	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) --file=Dockerfile.kubernetes -t webdevops/$(PROJECT_NAME):development-kubernetes .
 	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) --file=Dockerfile.distroless -t webdevops/$(PROJECT_NAME):development-distroless .
 	docker push	webdevops/$(PROJECT_NAME):development
 	docker push	webdevops/$(PROJECT_NAME):development-ubuntu
+	docker push	webdevops/$(PROJECT_NAME):development-alpine
 	docker push	webdevops/$(PROJECT_NAME):development-kubernetes
 	docker push	webdevops/$(PROJECT_NAME):development-distroless
 

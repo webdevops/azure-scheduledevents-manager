@@ -40,15 +40,9 @@ spec:
             - name: DRAIN_MODE
               value: "kubernetes"
             - name: DRAIN_NOT_BEFORE
-              value: "12m"
-            - name: KUBE_DRAIN_GRACE_PERIOD
-              value: "6m"
-            - name: KUBE_DRAIN_DELETE_LOCAL_DATA
-              value: "true"
-            - name: KUBE_DRAIN_FORCE
-              value: "true"
-            - name: KUBE_DRAIN_IGNORE_DAEMONSETS
-              value: "true"
+              value: "15m"
+            - name: KUBE_DRAIN_ARGS
+              value: "--force --grace-period=600 --timeout=0s --delete-emptydir-data=true --ignore-daemonsets=true"
             - name: KUBE_NODENAME
               valueFrom:
                 fieldRef:
@@ -64,8 +58,8 @@ spec:
               protocol: TCP
           resources:
             limits:
-              cpu: 100m
+              cpu: 1
               memory: 50Mi
             requests:
-              cpu: 1m
+              cpu: 100m
               memory: 50Mi

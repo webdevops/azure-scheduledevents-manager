@@ -221,9 +221,9 @@ func (m *ScheduledEventsManager) collect() {
 	m.prometheus.documentIncarnation.With(prometheus.Labels{}).Set(float64(scheduledEvents.DocumentIncarnation))
 
 	if len(scheduledEvents.Events) > 0 {
-		log.Infof("fetched %v Azure ScheduledEvents", len(scheduledEvents.Events))
+		log.Infof("found %v Azure ScheduledEvents", len(scheduledEvents.Events))
 	} else {
-		log.Debugf("fetched %v Azure ScheduledEvents", len(scheduledEvents.Events))
+		log.Debugf("found %v Azure ScheduledEvents", len(scheduledEvents.Events))
 
 		// if event is gone, ensure uncordon of node
 		if !m.nodeUncordon {
@@ -242,15 +242,18 @@ func (m *ScheduledEventsManager) collect() {
 				eventLogger.Infof("ensuring drain of instance %v", m.instanceName())
 				m.sendNotification("draining instance %v: upcoming Azure ScheduledEvent %v with %s by %s: %v", m.instanceName(), approveEvent.EventId, approveEvent.EventType, approveEvent.EventSource, approveEvent.Description)
 				m.prometheus.eventDrain.WithLabelValues(approveEvent.EventId, "start").SetToCurrentTime()
-				m.DrainManager.Drain(approveEvent)
+				if m.DrainManager.Drain(approveEvent) {
+					eventLogger.Infof("drained successfully")
+					m.nodeDrained = true
+					m.nodeUncordon = false
+				} else {
+					eventLogger.Infof("drained failed")
+				}
 				m.prometheus.eventDrain.WithLabelValues(approveEvent.EventId, "finish").SetToCurrentTime()
-				eventLogger.Infof("drained successfully")
-				m.nodeDrained = true
-				m.nodeUncordon = false
 			}
 
 			if m.Conf.Azure.ApproveScheduledEvent {
-				eventLogger.Infof("approving ScheduledEvent %v with %v", approveEvent.EventId, approveEvent.EventType)
+				eventLogger.Infof("approving ScheduledEvent %v with %v by %v", approveEvent.EventId, approveEvent.EventType, approveEvent.EventSource)
 				if err := m.AzureMetadataClient.ApproveScheduledEvent(approveEvent); err == nil {
 					m.prometheus.eventApproval.WithLabelValues(approveEvent.EventId).SetToCurrentTime()
 					eventLogger.Infof("event approved")
@@ -261,9 +264,13 @@ func (m *ScheduledEventsManager) collect() {
 		} else {
 			if !m.nodeUncordon {
 				log.Infof("ensuring uncordon of instance %v", m.instanceName())
-				m.DrainManager.Uncordon()
-				m.nodeDrained = false
-				m.nodeUncordon = true
+				if m.DrainManager.Uncordon() {
+					log.Infof("uncordon finished")
+					m.nodeDrained = false
+					m.nodeUncordon = true
+				} else {
+					log.Infof("uncordon failed")
+				}
 			}
 		}
 	}

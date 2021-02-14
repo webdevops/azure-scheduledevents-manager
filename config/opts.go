@@ -57,13 +57,8 @@ type (
 			NodeName string `long:"kube.nodename"  env:"KUBE_NODENAME"   description:"Kubernetes node name"`
 
 			Drain struct {
-				DeleteLocalData  bool          `long:"kube.drain.delete-local-data"  env:"KUBE_DRAIN_DELETE_LOCAL_DATA"     description:"Continue even if there are pods using emptyDir (local data that will be deleted when the node is drained)"`
-				Force            bool          `long:"kube.drain.force"              env:"KUBE_DRAIN_FORCE"                 description:"Continue even if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet"`
-				GracePeriod      int64         `long:"kube.drain.grace-period"       env:"KUBE_DRAIN_GRACE_PERIOD"          description:"Period of time in seconds given to each pod to terminate gracefully. If negative, the default value specified in the pod will be used."`
-				IgnoreDaemonsets bool          `long:"kube.drain.ignore-daemonsets"  env:"KUBE_DRAIN_IGNORE_DAEMONSETS"     description:"Ignore DaemonSet-managed pods."`
-				PodSelector      string        `long:"kube.drain.pod-selector"       env:"KUBE_DRAIN_POD_SELECTOR"          description:"Label selector to filter pods on the node"`
-				Timeout          time.Duration `long:"kube.drain.timeout"            env:"KUBE_DRAIN_TIMEOUT"               description:"The length of time to wait before giving up, zero means infinite" default:"0s"`
-				DryRun           bool          `long:"kube.drain.dry-run"            env:"KUBE_DRAIN_DRY_RUN"               description:"Do not drain, uncordon or label any node"`
+				Args   []string `long:"kube.drain.args"     env:"KUBE_DRAIN_ARGS"     description:"Arguments for kubectl drain" env-delim:" "`
+				DryRun bool     `long:"kube.drain.dry-run"  env:"KUBE_DRAIN_DRY_RUN"  description:"Do not drain, uncordon or label any node"`
 			}
 		}
 
