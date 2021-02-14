@@ -240,7 +240,7 @@ func (m *ScheduledEventsManager) collect() {
 
 			if !m.nodeDrained {
 				eventLogger.Infof("ensuring drain of instance %v", m.instanceName())
-				m.sendNotification("draining instance %v (upcoming Azure ScheduledEvent %v with %s)", m.instanceName(), approveEvent.EventId, approveEvent.EventType)
+				m.sendNotification("draining instance %v: upcoming Azure ScheduledEvent %v with %s by %s: %v", m.instanceName(), approveEvent.EventId, approveEvent.EventType, approveEvent.EventSource, approveEvent.Description)
 				m.prometheus.eventDrain.WithLabelValues(approveEvent.EventId, "start").SetToCurrentTime()
 				m.DrainManager.Drain(approveEvent)
 				m.prometheus.eventDrain.WithLabelValues(approveEvent.EventId, "finish").SetToCurrentTime()
