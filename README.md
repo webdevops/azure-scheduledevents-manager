@@ -83,8 +83,8 @@ Container can be run as readonly container.
 
 Run via docker:
 ```
-docker run --restart=always --read-only --user=0 --privileged --pid=host \
-    webdevops/azure-scheduledevents-manager:development \
+docker run --restart=always --read-only --user=0 --privileged --pid=host --restart=always --name=azure-scheduledevents-manager \
+    webdevops/azure-scheduledevents-manager:latest \
     --drain.enable \
     --drain.mode=command \
     --drain.not-before=15m \
@@ -100,7 +100,7 @@ docker-compose:
 version: "3"
 services:
   scheduledEvents:
-    image: webdevops/azure-scheduledevents-manager:development
+    image: webdevops/azure-scheduledevents-manager:latest
     command:
     - --drain.enable
     - --drain.mode=command
