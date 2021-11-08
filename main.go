@@ -15,6 +15,7 @@ import (
 	"path"
 	"runtime"
 	"strings"
+	"sync/atomic"
 )
 
 const (
@@ -27,6 +28,9 @@ var (
 	// Git version information
 	gitCommit = "<unknown>"
 	gitTag    = "<unknown>"
+
+	readyzStatus = int64(0)
+	drainzStatus = int64(0)
 )
 
 var opts config.Opts
@@ -63,6 +67,12 @@ func main() {
 		AzureMetadataClient: azureMetadataClient,
 	}
 	manager.Init()
+	manager.OnScheduledEvent = func() {
+		atomic.AddInt64(&readyzStatus, 1)
+	}
+	manager.OnAfterDrainEvent = func() {
+		atomic.AddInt64(&drainzStatus, 1)
+	}
 
 	if opts.Drain.Enable {
 		switch opts.Drain.Mode {
@@ -204,6 +214,41 @@ func initArgparser() {
 }
 
 func startHttpServer() {
+	// healthz
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if _, err := fmt.Fprint(w, "Ok"); err != nil {
+			log.Error(err)
+		}
+	})
+
+	// readyz
+	http.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		if readyzStatus == 0 {
+			if _, err := fmt.Fprint(w, "Ok"); err != nil {
+				log.Error(err)
+			}
+		} else {
+			w.WriteHeader(503)
+			if _, err := fmt.Fprint(w, "Drain in progress"); err != nil {
+				log.Error(err)
+			}
+		}
+	})
+
+	// drainz
+	http.HandleFunc("/drainz", func(w http.ResponseWriter, r *http.Request) {
+		if drainzStatus == 0 {
+			if _, err := fmt.Fprint(w, "Ok"); err != nil {
+				log.Error(err)
+			}
+		} else {
+			w.WriteHeader(503)
+			if _, err := fmt.Fprint(w, "Instance is drained"); err != nil {
+				log.Error(err)
+			}
+		}
+	})
+
 	http.Handle("/metrics", promhttp.Handler())
 	log.Fatal(http.ListenAndServe(opts.General.ServerBind, nil))
 }

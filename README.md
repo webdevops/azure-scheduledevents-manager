@@ -35,8 +35,9 @@ Application Options:
                                         http://169.254.169.254/metadata/instance?api-version=2019-08-01)
                                         [$AZURE_METADATAINSTANCE_URL]
       --azure.scheduledevents-url=      Azure ScheduledEvents API URL (default:
-                                        http://169.254.169.254/metadata/scheduledevents?api-version=2019-0-8-01)
-                                        [$AZURE_SCHEDULEDEVENTS_URL]
+                                        http://169.254.169.254/metadata/scheduledevents?api-version=2019-0-
+
+                                        8-01) [$AZURE_SCHEDULEDEVENTS_URL]
       --azure.timeout=                  Azure API timeout (seconds) (default: 30s) [$AZURE_TIMEOUT]
       --azure.error-threshold=          Azure API error threshold (after which app will panic) (default:
                                         0) [$AZURE_ERROR_THRESHOLD]
@@ -48,6 +49,10 @@ Application Options:
       --drain.not-before=               Dont drain before this time (default: 5m) [$DRAIN_NOT_BEFORE]
       --drain.events=                   Enable drain handling (default: reboot, redeploy, preempt,
                                         terminate) [$DRAIN_EVENTS]
+      --drain.wait-before-cmd=          Wait duration before trigger drain command (default: 0)
+                                        [$DRAIN_WAIT_BEFORE_CMD]
+      --drain.wait-after-cmd=           Wait duration before trigger drain command (default: 0)
+                                        [$DRAIN_WAIT_AFTER_CMD]
       --command.test.cmd=               Test command in command mode [$COMMAND_TEST_CMD]
       --command.drain.cmd=              Drain command in command mode [$COMMAND_DRAIN_CMD]
       --command.uncordon.cmd=           Uncordon command in command mode [$COMMAND_UNCORDON_CMD]
@@ -130,3 +135,12 @@ all Docker environment variables are passed to drain command, also following eve
 ## Kubernetes deployment
 
 see [deployment](/deployment)
+
+## HTTP endpoints
+
+| Endpoint          | Description                                                                                      |
+|-------------------|--------------------------------------------------------------------------------------------------|
+| `/metrics`        | Prometheus metric endpoint                                                                       |
+| `/healthz`        | Health endpoint (always HTTP 200 if running)                                                     |
+| `/readyz`         | Ready endpoint (always HTTP 200 if running and if no ScheduledEvent of type `$DRAIN_EVENTS` received) |
+| `/drainz`         | Ready endpoint (always HTTP 200 if running and if no ScheduledEvent of type `$DRAIN_EVENTS` received and drain was executed) |

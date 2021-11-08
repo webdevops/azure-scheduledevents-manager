@@ -17,6 +17,9 @@ type (
 		nodeDrained   bool
 		nodeUncordon  bool
 
+		OnScheduledEvent  func()
+		OnAfterDrainEvent func()
+
 		Conf                config.Opts
 		AzureMetadataClient *azuremetadata.AzureMetadata
 		DrainManager        drainmanager.DrainManager
@@ -188,6 +191,10 @@ func (m *ScheduledEventsManager) collect() {
 					}).Infof("detected ScheduledEvent %v with %v by %v in %v for current node", event.EventId, event.EventSource, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()) //nolint:gosimple
 					approveEvent = &event
 					if eventValue == 1 || drainTimeThreshold >= eventValue {
+						if m.OnScheduledEvent != nil {
+							m.OnScheduledEvent()
+						}
+
 						if stringArrayContainsCi(m.Conf.Drain.Events, event.EventType) {
 							triggerDrain = true
 						}
@@ -246,6 +253,12 @@ func (m *ScheduledEventsManager) collect() {
 				eventLogger.Infof("ensuring drain of instance %v", m.instanceName())
 				m.sendNotification("draining instance %v: upcoming Azure ScheduledEvent %v with %s by %s: %v", m.instanceName(), approveEvent.EventId, approveEvent.EventType, approveEvent.EventSource, approveEvent.Description)
 				m.prometheus.eventDrain.WithLabelValues(approveEvent.EventId, "start").SetToCurrentTime()
+
+				if m.Conf.Drain.WaitBeforeCmd.Seconds() >= 1 {
+					eventLogger.Infof("wait %v before drain", m.Conf.Drain.WaitBeforeCmd.String())
+					time.Sleep(m.Conf.Drain.WaitBeforeCmd)
+				}
+
 				if m.DrainManager.Drain(approveEvent) {
 					eventLogger.Infof("drained successfully")
 					m.nodeDrained = true
@@ -253,6 +266,16 @@ func (m *ScheduledEventsManager) collect() {
 				} else {
 					eventLogger.Infof("drained failed")
 				}
+
+				if m.Conf.Drain.WaitAfterCmd.Seconds() >= 1 {
+					eventLogger.Infof("wait %v after drain", m.Conf.Drain.WaitBeforeCmd.String())
+					time.Sleep(m.Conf.Drain.WaitAfterCmd)
+				}
+
+				if m.OnAfterDrainEvent != nil {
+					m.OnAfterDrainEvent()
+				}
+
 				m.prometheus.eventDrain.WithLabelValues(approveEvent.EventId, "finish").SetToCurrentTime()
 			}
 

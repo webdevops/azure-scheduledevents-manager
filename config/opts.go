@@ -39,6 +39,9 @@ type (
 			Mode      string        `long:"drain.mode"               env:"DRAIN_MODE"                  description:"Mode" choice:"kubernetes" choice:"command"` //nolint:golint,staticcheck
 			NotBefore time.Duration `long:"drain.not-before"         env:"DRAIN_NOT_BEFORE"            description:"Dont drain before this time" default:"5m"`
 			Events    []string      `long:"drain.events"             env:"DRAIN_EVENTS" env-delim:" "  description:"Enable drain handling" default:"reboot" default:"redeploy" default:"preempt" default:"terminate"` //nolint:staticcheck
+
+			WaitBeforeCmd time.Duration `long:"drain.wait-before-cmd"  env:"DRAIN_WAIT_BEFORE_CMD"     description:"Wait duration before trigger drain command" default:"0"`
+			WaitAfterCmd  time.Duration `long:"drain.wait-after-cmd"   env:"DRAIN_WAIT_AFTER_CMD"      description:"Wait duration before trigger drain command" default:"0"`
 		}
 
 		Command struct {
