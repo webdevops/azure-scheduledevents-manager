@@ -1,4 +1,4 @@
-FROM golang:1.15 as build
+FROM golang:1.17 as build
 WORKDIR /go/src/github.com/webdevops/azure-scheduledevents-manager
 
 # Get deps (cached)
@@ -14,7 +14,7 @@ RUN make lint
 RUN make build
 RUN ./azure-scheduledevents-manager --help
 
-FROM golang:1.15 as kubectl
+FROM golang:1.17 as kubectl
 ARG TARGETOS
 ARG TARGETARCH
 # kubectl
