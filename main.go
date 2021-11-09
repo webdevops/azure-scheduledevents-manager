@@ -65,8 +65,10 @@ func main() {
 	manager := manager.ScheduledEventsManager{
 		Conf:                opts,
 		AzureMetadataClient: azureMetadataClient,
+		DrainManager:        &drainmanager.DrainManagerNoop{},
 	}
 	manager.Init()
+	manager.DrainManager.SetInstanceName(opts.Instance.VmNodeName)
 	manager.OnScheduledEvent = func() {
 		atomic.AddInt64(&readyzStatus, 1)
 	}
