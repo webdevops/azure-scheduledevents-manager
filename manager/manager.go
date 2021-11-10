@@ -37,7 +37,6 @@ type (
 
 func (m *ScheduledEventsManager) Init() {
 	m.initMetrics()
-	m.DrainManager = nil
 }
 
 func (m *ScheduledEventsManager) initMetrics() {
