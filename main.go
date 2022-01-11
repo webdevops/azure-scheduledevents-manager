@@ -65,10 +65,8 @@ func main() {
 	manager := manager.ScheduledEventsManager{
 		Conf:                opts,
 		AzureMetadataClient: azureMetadataClient,
-		DrainManager:        &drainmanager.DrainManagerNoop{},
 	}
 	manager.Init()
-	manager.DrainManager.SetInstanceName(opts.Instance.VmNodeName)
 	manager.OnScheduledEvent = func() {
 		atomic.AddInt64(&readyzStatus, 1)
 	}
@@ -88,11 +86,11 @@ func main() {
 			manager.DrainManager = drain
 		case "command":
 			log.Infof("start \"command\" mode")
-			drain := &drainmanager.DrainManagerCommand{
+			drain := drainmanager.DrainManagerCommand{
 				Conf: opts,
 			}
 			drain.SetInstanceName(opts.Instance.VmNodeName)
-			manager.DrainManager = drain
+			manager.DrainManager = &drain
 		default:
 			log.Panicf("drain mode \"%v\" is not valid", opts.Drain.Mode)
 		}

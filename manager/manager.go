@@ -232,7 +232,7 @@ func (m *ScheduledEventsManager) collect() {
 		log.Debugf("found %v Azure ScheduledEvents", len(scheduledEvents.Events))
 
 		// if event is gone, ensure uncordon of node
-		if !m.nodeUncordon {
+		if !m.nodeUncordon && m.DrainManager != nil {
 			log.Infof("ensuring uncordon of instance %v", m.instanceName())
 			if m.DrainManager.Uncordon() {
 				log.Infof("uncordon finished")
@@ -258,12 +258,14 @@ func (m *ScheduledEventsManager) collect() {
 					time.Sleep(m.Conf.Drain.WaitBeforeCmd)
 				}
 
-				if m.DrainManager.Drain(approveEvent) {
-					eventLogger.Infof("drained successfully")
-					m.nodeDrained = true
-					m.nodeUncordon = false
-				} else {
-					eventLogger.Infof("drained failed")
+				if m.DrainManager != nil {
+					if m.DrainManager.Drain(approveEvent) {
+						eventLogger.Infof("drained successfully")
+						m.nodeDrained = true
+						m.nodeUncordon = false
+					} else {
+						eventLogger.Infof("drained failed")
+					}
 				}
 
 				if m.Conf.Drain.WaitAfterCmd.Seconds() >= 1 {
@@ -288,7 +290,7 @@ func (m *ScheduledEventsManager) collect() {
 				}
 			}
 		} else {
-			if !m.nodeUncordon {
+			if !m.nodeUncordon && m.DrainManager != nil {
 				log.Infof("ensuring uncordon of instance %v", m.instanceName())
 				if m.DrainManager.Uncordon() {
 					log.Infof("uncordon finished")
@@ -303,13 +305,17 @@ func (m *ScheduledEventsManager) collect() {
 }
 
 func (m *ScheduledEventsManager) instanceName() string {
-	drainManagerInstanceName := m.DrainManager.InstanceName()
+	if m.DrainManager != nil {
+		drainManagerInstanceName := m.DrainManager.InstanceName()
 
-	if drainManagerInstanceName == m.Conf.Instance.VmNodeName {
-		return drainManagerInstanceName
-	} else {
-		return fmt.Sprintf("%v (vm: %v)", drainManagerInstanceName, m.Conf.Instance.VmNodeName)
+		if drainManagerInstanceName == m.Conf.Instance.VmNodeName {
+			return drainManagerInstanceName
+		} else {
+			return fmt.Sprintf("%v (vm: %v)", drainManagerInstanceName, m.Conf.Instance.VmNodeName)
+		}
 	}
+
+	return m.Conf.Instance.VmNodeName
 }
 
 func (m *ScheduledEventsManager) sendNotification(message string, args ...interface{}) {
