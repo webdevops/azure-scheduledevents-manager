@@ -59,7 +59,7 @@ func (m *DrainManagerKubernetes) execGet(resourceType string, args ...string) bo
 		resourceType,
 	}
 	kubectlArgs = append(kubectlArgs, args...)
-	return m.runComand(exec.Command("/kubectl", kubectlArgs...))
+	return m.runComand(exec.Command("/kubectl", kubectlArgs...)) // #nosec G204
 }
 
 func (m *DrainManagerKubernetes) exec(args ...string) bool {
