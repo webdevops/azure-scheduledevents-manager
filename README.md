@@ -3,6 +3,7 @@
 [![license](https://img.shields.io/github/license/webdevops/azure-scheduledevents-manager.svg)](https://github.com/webdevops/azure-scheduledevents-manager/blob/master/LICENSE)
 [![DockerHub](https://img.shields.io/badge/DockerHub-webdevops%2Fazure--scheduledevents--manager-blue)](https://hub.docker.com/r/webdevops/azure-scheduledevents-manager/)
 [![Quay.io](https://img.shields.io/badge/Quay.io-webdevops%2Fazure--scheduledevents--manager-blue)](https://quay.io/repository/webdevops/azure-scheduledevents-manager)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/azure-scheduledevents-manager)](https://artifacthub.io/packages/search?repo=azure-scheduledevents-manager)
 
 Manager for Linux VMs and Kubernetes clusters for [Azure ScheduledEvents](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/scheduled-events) (planned VM maintenance) with Prometheus metrics support.
 Drains nodes automatically when `Redeploy`, `Reboot`, `Preemt` or `Terminate` is detected and approves (start event ASAP) the event automatically.
