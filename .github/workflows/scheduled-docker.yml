@@ -4,18 +4,30 @@ on:
   schedule:
     - cron: '0 6 * * 1'
 
-
 jobs:
-  build-dockerfile:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: ./...
+
+      - name: Run Golangci lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: latest
+          args: -E exportloopref,gofmt --timeout=30m
+
       - name: Docker meta
         id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v1
+        uses: docker/metadata-action@v3
         with:
-          images: webdevops/azure-scheduledevents-manager,quay.io/webdevops/azure-scheduledevents-manager
-          tag-latest: true
+          images: webdevops/${{ github.event.repository.name }},quay.io/webdevops/${{ github.event.repository.name }}
+          labels: |
+            io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository }}/${{ github.event.repository.default_branch }}/README.md
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1

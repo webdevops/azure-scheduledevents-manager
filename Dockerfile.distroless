@@ -1,16 +1,14 @@
-FROM golang:1.17 as build
-WORKDIR /go/src/github.com/webdevops/azure-scheduledevents-manager
+FROM golang:1.17-alpine as build
 
-# Get deps (cached)
-COPY ./go.mod /go/src/github.com/webdevops/azure-scheduledevents-manager
-COPY ./go.sum /go/src/github.com/webdevops/azure-scheduledevents-manager
-COPY ./Makefile /go/src/github.com/webdevops/azure-scheduledevents-manager
-RUN make dependencies
+RUN apk upgrade --no-cache --force
+RUN apk add --update build-base make git
+
+WORKDIR /go/src/github.com/webdevops/azure-scheduledevents-manager
 
 # Compile
 COPY ./ /go/src/github.com/webdevops/azure-scheduledevents-manager
+RUN make dependencies
 RUN make test
-RUN make lint
 RUN make build
 RUN ./azure-scheduledevents-manager --help
 
