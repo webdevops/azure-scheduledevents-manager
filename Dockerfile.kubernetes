@@ -1,4 +1,4 @@
-FROM golang:1.17-alpine as build
+FROM golang:1.18-alpine as build
 
 RUN apk upgrade --no-cache --force
 RUN apk add --update build-base make git
@@ -12,7 +12,7 @@ RUN make test
 RUN make build
 RUN ./azure-scheduledevents-manager --help
 
-FROM golang:1.17 as kubectl
+FROM golang:1.18 as kubectl
 ARG TARGETOS
 ARG TARGETARCH
 # kubectl

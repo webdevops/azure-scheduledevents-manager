@@ -1,10 +1,11 @@
-PROJECT_NAME		:= azure-scheduledevents-manager
+PROJECT_NAME		:= $(shell basename $(CURDIR))
 GIT_TAG				:= $(shell git describe --dirty --tags --always)
 GIT_COMMIT			:= $(shell git rev-parse --short HEAD)
 LDFLAGS				:= -X "main.gitTag=$(GIT_TAG)" -X "main.gitCommit=$(GIT_COMMIT)" -linkmode external -extldflags "-static" -s -w
 
 FIRST_GOPATH			:= $(firstword $(subst :, ,$(shell go env GOPATH)))
 GOLANGCI_LINT_BIN		:= $(FIRST_GOPATH)/bin/golangci-lint
+GOSEC_BIN				:= $(FIRST_GOPATH)/bin/gosec
 
 .PHONY: all
 all: build
@@ -27,18 +28,11 @@ vendor:
 image: build
 	docker build -t $(PROJECT_NAME):$(GIT_TAG) .
 
-.PHONY: build-push-development
 build-push-development:
-	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) --file=Dockerfile -t webdevops/$(PROJECT_NAME):development .
-	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) --file=Dockerfile.ubuntu -t webdevops/$(PROJECT_NAME):development-ubuntu .
-	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) --file=Dockerfile.alpine -t webdevops/$(PROJECT_NAME):development-alpine .
-	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) --file=Dockerfile.kubernetes -t webdevops/$(PROJECT_NAME):development-kubernetes .
-	docker build --build-arg=TARGETOS=$(TARGETOS) --build-arg=TARGETARCH=$(TARGETARCH) --file=Dockerfile.distroless -t webdevops/$(PROJECT_NAME):development-distroless .
-	docker push	webdevops/$(PROJECT_NAME):development
-	docker push	webdevops/$(PROJECT_NAME):development-ubuntu
-	docker push	webdevops/$(PROJECT_NAME):development-alpine
-	docker push	webdevops/$(PROJECT_NAME):development-kubernetes
-	docker push	webdevops/$(PROJECT_NAME):development-distroless
+	docker buildx create --name webdevops-builder
+	docker buildx use webdevops-builder
+	docker buildx inspect --bootstrap
+	docker buildx build -t webdevops/$(PROJECT_NAME):development --platform linux/amd64,linux/arm,linux/arm64 --push .
 
 .PHONY: test
 test:
@@ -47,6 +41,9 @@ test:
 .PHONY: dependencies
 dependencies:
 	go mod vendor
+
+.PHONY: check-release
+check-release: vendor lint gosec test
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT_BIN)
@@ -57,7 +54,7 @@ gosec: $(GOSEC_BIN)
 	$(GOSEC_BIN) ./...
 
 $(GOLANGCI_LINT_BIN):
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(FIRST_GOPATH)/bin
 
 $(GOSEC_BIN):
-	curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(FIRST_GOPATH)/bin v2.7.0
+	curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(FIRST_GOPATH)/bin
