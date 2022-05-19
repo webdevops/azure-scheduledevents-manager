@@ -4,21 +4,21 @@ go 1.17
 
 require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/containrrr/shoutrrr v0.5.2
+	github.com/containrrr/shoutrrr v0.5.3
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/fsnotify/fsnotify v1.5.1 // indirect
+	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.18.1 // indirect
-	github.com/prometheus/client_golang v1.12.1
-	github.com/prometheus/common v0.32.1 // indirect
+	github.com/onsi/gomega v1.19.0 // indirect
+	github.com/prometheus/client_golang v1.12.2
+	github.com/prometheus/common v0.34.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/sirupsen/logrus v1.8.1
-	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
-	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
+	golang.org/x/net v0.0.0-20220517181318-183a9ca12b87 // indirect
+	golang.org/x/sys v0.0.0-20220519141025-dcacdad47464 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/protobuf v1.28.0 // indirect
 )
 
 require (
