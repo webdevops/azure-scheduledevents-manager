@@ -1,6 +1,8 @@
 package drainmanager
 
-import "github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
+import (
+	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
+)
 
 type (
 	DrainManager interface {

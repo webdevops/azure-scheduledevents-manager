@@ -2,11 +2,13 @@ package drainmanager
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
-	"github.com/webdevops/azure-scheduledevents-manager/config"
 	"os"
 	"os/exec"
+
+	log "github.com/sirupsen/logrus"
+
+	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
+	"github.com/webdevops/azure-scheduledevents-manager/config"
 )
 
 type DrainManagerKubernetes struct {

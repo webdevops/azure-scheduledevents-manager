@@ -2,13 +2,15 @@ package manager
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/containrrr/shoutrrr"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
+
 	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
 	"github.com/webdevops/azure-scheduledevents-manager/config"
 	"github.com/webdevops/azure-scheduledevents-manager/drainmanager"
-	"time"
 )
 
 type (

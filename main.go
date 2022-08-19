@@ -2,13 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/jessevdk/go-flags"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/sirupsen/logrus"
-	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
-	"github.com/webdevops/azure-scheduledevents-manager/config"
-	"github.com/webdevops/azure-scheduledevents-manager/drainmanager"
-	"github.com/webdevops/azure-scheduledevents-manager/manager"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,6 +9,15 @@ import (
 	"runtime"
 	"strings"
 	"sync/atomic"
+
+	"github.com/jessevdk/go-flags"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
+	"github.com/webdevops/azure-scheduledevents-manager/config"
+	"github.com/webdevops/azure-scheduledevents-manager/drainmanager"
+	"github.com/webdevops/azure-scheduledevents-manager/manager"
 )
 
 const (
