@@ -64,16 +64,19 @@ func main() {
 	}
 	log.Infof("using VM node: %v", opts.Instance.VmNodeName)
 
-	manager := manager.ScheduledEventsManager{
+	scheduledEventsManager := manager.ScheduledEventsManager{
 		Conf:                opts,
 		AzureMetadataClient: azureMetadataClient,
 	}
-	manager.Init()
-	manager.OnScheduledEvent = func() {
-		atomic.AddInt64(&readyzStatus, 1)
+	scheduledEventsManager.Init()
+	scheduledEventsManager.OnClear = func() {
+		atomic.StoreInt64(&readyzStatus, 0)
 	}
-	manager.OnAfterDrainEvent = func() {
-		atomic.AddInt64(&drainzStatus, 1)
+	scheduledEventsManager.OnScheduledEvent = func() {
+		atomic.StoreInt64(&readyzStatus, 1)
+	}
+	scheduledEventsManager.OnAfterDrainEvent = func() {
+		atomic.StoreInt64(&drainzStatus, 1)
 	}
 
 	if opts.Drain.Enable {
@@ -85,23 +88,23 @@ func main() {
 				Conf: opts,
 			}
 			drain.SetInstanceName(opts.Kubernetes.NodeName)
-			manager.DrainManager = drain
+			scheduledEventsManager.DrainManager = drain
 		case "command":
 			log.Infof("start \"command\" mode")
 			drain := drainmanager.DrainManagerCommand{
 				Conf: opts,
 			}
 			drain.SetInstanceName(opts.Instance.VmNodeName)
-			manager.DrainManager = &drain
+			scheduledEventsManager.DrainManager = &drain
 		default:
 			log.Panicf("drain mode \"%v\" is not valid", opts.Drain.Mode)
 		}
 
-		manager.DrainManager.Test()
+		scheduledEventsManager.DrainManager.Test()
 	}
 
 	log.Infof("starting manager")
-	manager.Start()
+	scheduledEventsManager.Start()
 
 	log.Infof("starting http server on %s", opts.General.ServerBind)
 	startHttpServer()

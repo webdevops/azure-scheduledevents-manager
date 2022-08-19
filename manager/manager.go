@@ -19,6 +19,7 @@ type (
 		nodeDrained   bool
 		nodeUncordon  bool
 
+		OnClear           func()
 		OnScheduledEvent  func()
 		OnAfterDrainEvent func()
 
@@ -232,6 +233,7 @@ func (m *ScheduledEventsManager) collect() {
 		log.Infof("found %v Azure ScheduledEvents", len(scheduledEvents.Events))
 	} else {
 		log.Debugf("found %v Azure ScheduledEvents", len(scheduledEvents.Events))
+		m.OnClear()
 
 		// if event is gone, ensure uncordon of node
 		if !m.nodeUncordon && m.DrainManager != nil {
@@ -244,6 +246,11 @@ func (m *ScheduledEventsManager) collect() {
 				log.Infof("uncordon failed")
 			}
 		}
+	}
+
+	// trigger clear event if no approve event is found or no events at all
+	if approveEvent == nil || len(scheduledEvents.Events) == 0 {
+		m.OnClear()
 	}
 
 	if m.Conf.Drain.Enable {
