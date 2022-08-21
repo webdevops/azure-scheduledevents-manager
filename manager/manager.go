@@ -193,11 +193,11 @@ func (m *ScheduledEventsManager) collect() {
 					}).Infof("detected ScheduledEvent %v with %v by %v in %v for current node", event.EventId, event.EventSource, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()) //nolint:gosimple
 					approveEvent = &event
 					if eventValue == 1 || drainTimeThreshold >= eventValue {
-						if m.OnScheduledEvent != nil {
-							m.OnScheduledEvent()
-						}
-
 						if stringArrayContainsCi(m.Conf.Drain.Events, event.EventType) {
+							if m.OnScheduledEvent != nil {
+								m.OnScheduledEvent()
+							}
+
 							triggerDrain = true
 						}
 					}
