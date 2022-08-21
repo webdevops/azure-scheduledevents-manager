@@ -30,40 +30,36 @@ Application Options:
       --debug                           debug mode [$DEBUG]
   -v, --verbose                         verbose mode [$VERBOSE]
       --log.json                        Switch log output to json format [$LOG_JSON]
-      --bind=                           Server address (default: :8080) [$SERVER_BIND]
-      --scrape-time=                    Scrape time in seconds (default: 1m) [$SCRAPE_TIME]
+      --server.bind=                    Server address (default: :8080) [$SERVER_BIND]
+      --server.timeout.read=            Server read timeout (default: 5s) [$SERVER_TIMEOUT_READ]
+      --server.timeout.write=           Server write timeout (default: 10s) [$SERVER_TIMEOUT_WRITE]
+      --scrape.time=                    Scrape time in seconds (default: 1m) [$SCRAPE_TIME]
       --azure.metadatainstance-url=     Azure ScheduledEvents API URL (default:
                                         http://169.254.169.254/metadata/instance?api-version=2019-08-01)
                                         [$AZURE_METADATAINSTANCE_URL]
       --azure.scheduledevents-url=      Azure ScheduledEvents API URL (default:
-                                        http://169.254.169.254/metadata/scheduledevents?api-version=2019-0-
-
-                                        8-01) [$AZURE_SCHEDULEDEVENTS_URL]
+                                        http://169.254.169.254/metadata/scheduledevents?api-version=2019-08-01)
+                                        [$AZURE_SCHEDULEDEVENTS_URL]
       --azure.timeout=                  Azure API timeout (seconds) (default: 30s) [$AZURE_TIMEOUT]
-      --azure.error-threshold=          Azure API error threshold (after which app will panic) (default:
-                                        0) [$AZURE_ERROR_THRESHOLD]
+      --azure.error-threshold=          Azure API error threshold (after which app will panic) (default: 0)
+                                        [$AZURE_ERROR_THRESHOLD]
       --azure.approve-scheduledevent    Approve ScheduledEvent and start (if possible) start them ASAP
                                         [$AZURE_APPROVE_SCHEDULEDEVENT]
       --vm.nodename=                    VM node name [$VM_NODENAME]
       --drain.enable                    Enable drain handling [$DRAIN_ENABLE]
       --drain.mode=[kubernetes|command] Mode [$DRAIN_MODE]
       --drain.not-before=               Dont drain before this time (default: 5m) [$DRAIN_NOT_BEFORE]
-      --drain.events=                   Enable drain handling (default: reboot, redeploy, preempt,
-                                        terminate) [$DRAIN_EVENTS]
-      --drain.wait-before-cmd=          Wait duration before trigger drain command (default: 0)
-                                        [$DRAIN_WAIT_BEFORE_CMD]
-      --drain.wait-after-cmd=           Wait duration before trigger drain command (default: 0)
-                                        [$DRAIN_WAIT_AFTER_CMD]
+      --drain.events=                   Enable drain handling (default: reboot, redeploy, preempt, terminate) [$DRAIN_EVENTS]
+      --drain.wait-before-cmd=          Wait duration before trigger drain command (default: 0) [$DRAIN_WAIT_BEFORE_CMD]
+      --drain.wait-after-cmd=           Wait duration before trigger drain command (default: 0) [$DRAIN_WAIT_AFTER_CMD]
       --command.test.cmd=               Test command in command mode [$COMMAND_TEST_CMD]
       --command.drain.cmd=              Drain command in command mode [$COMMAND_DRAIN_CMD]
       --command.uncordon.cmd=           Uncordon command in command mode [$COMMAND_UNCORDON_CMD]
       --kube.nodename=                  Kubernetes node name [$KUBE_NODENAME]
       --kube.drain.args=                Arguments for kubectl drain [$KUBE_DRAIN_ARGS]
       --kube.drain.dry-run              Do not drain, uncordon or label any node [$KUBE_DRAIN_DRY_RUN]
-      --notification=                   Shoutrrr url for notifications
-                                        (https://containrrr.github.io/shoutrrr/) [$NOTIFICATION]
-      --notification.messagetemplate=   Notification template (default: %v)
-                                        [$NOTIFICATION_MESSAGE_TEMPLATE]
+      --notification=                   Shoutrrr url for notifications (https://containrrr.github.io/shoutrrr/) [$NOTIFICATION]
+      --notification.messagetemplate=   Notification template (default: %v) [$NOTIFICATION_MESSAGE_TEMPLATE]
       --metrics-requeststats            Enable request stats metrics [$METRICS_REQUESTSTATS]
 
 Help Options:
