@@ -110,7 +110,7 @@ func (m *ScheduledEventsManager) Start() {
 	go func() {
 		for {
 			m.collect()
-			time.Sleep(m.Conf.General.ScrapeTime)
+			time.Sleep(m.Conf.Scrape.Time)
 		}
 	}()
 }

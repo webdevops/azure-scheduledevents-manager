@@ -16,10 +16,15 @@ type (
 			LogJson bool `           long:"log.json"     env:"LOG_JSON" description:"Switch log output to json format"`
 		}
 
-		General struct {
+		Server struct {
 			// general options
-			ServerBind string        `long:"bind"                env:"SERVER_BIND"   description:"Server address"                default:":8080"`
-			ScrapeTime time.Duration `long:"scrape-time"         env:"SCRAPE_TIME"   description:"Scrape time in seconds"        default:"1m"`
+			Bind         string        `long:"server.bind"       env:"SERVER_BIND"           description:"Server address"        default:":8080"`
+			ReadTimeout  time.Duration `long:"server.timeout.read"      env:"SERVER_TIMEOUT_READ"   description:"Server read timeout"   default:"5s"`
+			WriteTimeout time.Duration `long:"server.timeout.write"     env:"SERVER_TIMEOUT_WRITE"  description:"Server write timeout"  default:"10s"`
+		}
+
+		Scrape struct {
+			Time time.Duration `long:"scrape.time"   env:"SCRAPE_TIME"   description:"Scrape time in seconds"  default:"1m"`
 		}
 
 		// Api option

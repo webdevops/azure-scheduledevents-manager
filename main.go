@@ -106,7 +106,7 @@ func main() {
 	log.Infof("starting manager")
 	scheduledEventsManager.Start()
 
-	log.Infof("starting http server on %s", opts.General.ServerBind)
+	log.Infof("starting http server on %s", opts.Server.Bind)
 	startHttpServer()
 }
 
@@ -219,15 +219,17 @@ func initArgparser() {
 }
 
 func startHttpServer() {
+	mux := http.NewServeMux()
+
 	// healthz
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if _, err := fmt.Fprint(w, "Ok"); err != nil {
 			log.Error(err)
 		}
 	})
 
 	// readyz
-	http.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
 		if readyzStatus == 0 {
 			if _, err := fmt.Fprint(w, "Ok"); err != nil {
 				log.Error(err)
@@ -241,7 +243,7 @@ func startHttpServer() {
 	})
 
 	// drainz
-	http.HandleFunc("/drainz", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/drainz", func(w http.ResponseWriter, r *http.Request) {
 		if drainzStatus == 0 {
 			if _, err := fmt.Fprint(w, "Ok"); err != nil {
 				log.Error(err)
@@ -254,6 +256,13 @@ func startHttpServer() {
 		}
 	})
 
-	http.Handle("/metrics", promhttp.Handler())
-	log.Fatal(http.ListenAndServe(opts.General.ServerBind, nil))
+	mux.Handle("/metrics", promhttp.Handler())
+
+	srv := &http.Server{
+		Addr:         opts.Server.Bind,
+		Handler:      mux,
+		ReadTimeout:  opts.Server.ReadTimeout,
+		WriteTimeout: opts.Server.WriteTimeout,
+	}
+	log.Fatal(srv.ListenAndServe())
 }
