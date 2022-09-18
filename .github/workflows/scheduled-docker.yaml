@@ -10,16 +10,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Run Gosec Security Scanner
-        uses: securego/gosec@master
+      - name: Set Swap Space
+        uses: pierotofy/set-swap-space@master
         with:
-          args: ./...
+          swap-size-gb: 12
 
       - name: Run Golangci lint
         uses: golangci/golangci-lint-action@v2
         with:
           version: latest
-          args: -E exportloopref,gofmt --timeout=30m
+          args: --print-resources-usage
 
   build:
     needs: lint
@@ -42,6 +42,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
+      - name: Set Swap Space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 12
 
       - name: Docker meta
         id: docker_meta
@@ -78,7 +83,7 @@ jobs:
         with:
           context: .
           file: ./${{ matrix.Dockerfile }}
-          platforms: linux/amd64,linux/arm,linux/arm64,linux/ppc64le
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}

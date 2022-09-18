@@ -7,7 +7,6 @@ require (
 	github.com/containrrr/shoutrrr v0.6.1
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
-	github.com/jessevdk/go-flags v1.5.0
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.19.0 // indirect
@@ -20,7 +19,10 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 )
 
-require github.com/go-resty/resty/v2 v2.7.0
+require (
+	github.com/go-resty/resty/v2 v2.7.0
+	github.com/jessevdk/go-flags v1.5.0
+)
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
