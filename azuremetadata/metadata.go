@@ -33,7 +33,7 @@ func (m *AzureMetadata) Init() {
 	// retry
 	m.restClient.SetRetryCount(5)
 	m.restClient.SetRetryMaxWaitTime(30 * time.Second)
-	m.restClient.SetRetryWaitTime(5 * time.Second)
+	m.restClient.SetRetryWaitTime(10 * time.Second)
 	m.restClient.AddRetryCondition(resty.RetryConditionFunc(func(r *resty.Response, err error) bool {
 		// retry for 4xx and 5xx
 		return r.StatusCode() >= http.StatusBadRequest
