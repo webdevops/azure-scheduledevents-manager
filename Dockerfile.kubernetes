@@ -39,7 +39,8 @@ RUN ["./kubectl", "version", "--client=true"]
 #############################################
 FROM gcr.io/distroless/static
 ENV LOG_JSON=1 \
-    DRAIN_MODE=kubernetes
+    DRAIN_MODE=kubernetes \
+    PATH=/
 WORKDIR /
 COPY --from=test /app .
 USER 1000:1000

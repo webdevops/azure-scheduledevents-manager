@@ -64,13 +64,16 @@ func (m *DrainManagerCommand) exec(command string, event *azuremetadata.AzureSch
 
 	cmd := exec.Command("sh", "-c", command)
 	cmd.Env = env
-	cmdLogger := m.Logger.With(zap.String("command", "sh"))
+
+	cmdLogger := m.Logger.With(zap.String("command", "sh")).Desugar()
+	cmdLogger = cmdLogger.WithOptions(zap.AddStacktrace(zap.PanicLevel), zap.WithCaller(false))
+
 	m.Logger.Debugf("EXEC: %v", cmd.String())
 
-	stdOutWriter := &zapio.Writer{Log: cmdLogger.Desugar(), Level: zap.InfoLevel}
+	stdOutWriter := &zapio.Writer{Log: cmdLogger, Level: zap.InfoLevel}
 	defer stdOutWriter.Close()
 
-	stdErrWriter := &zapio.Writer{Log: cmdLogger.Desugar(), Level: zap.ErrorLevel}
+	stdErrWriter := &zapio.Writer{Log: cmdLogger, Level: zap.ErrorLevel}
 	defer stdErrWriter.Close()
 
 	cmd.Stdout = stdOutWriter
@@ -78,7 +81,7 @@ func (m *DrainManagerCommand) exec(command string, event *azuremetadata.AzureSch
 
 	err := cmd.Run()
 	if err != nil {
-		cmdLogger.Panic(err)
+		cmdLogger.Error(err.Error())
 		return false
 	}
 

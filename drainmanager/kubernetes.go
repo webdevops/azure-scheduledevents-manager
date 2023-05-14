@@ -67,7 +67,7 @@ func (m *DrainManagerKubernetes) execGet(resourceType string, args ...string) bo
 		resourceType,
 	}
 	kubectlArgs = append(kubectlArgs, args...)
-	return m.runComand(exec.Command("/kubectl", kubectlArgs...)) // #nosec G204
+	return m.runComand(exec.Command("kubectl", kubectlArgs...)) // #nosec G204
 }
 
 func (m *DrainManagerKubernetes) exec(args ...string) bool {
@@ -81,20 +81,21 @@ func (m *DrainManagerKubernetes) exec(args ...string) bool {
 func (m *DrainManagerKubernetes) runComand(cmd *exec.Cmd) bool {
 	cmd.Env = os.Environ()
 
-	cmdLogger := m.Logger.With(zap.String("command", "kubectl"))
+	cmdLogger := m.Logger.With(zap.String("command", "kubectl")).Desugar()
+	cmdLogger = cmdLogger.WithOptions(zap.AddStacktrace(zap.PanicLevel), zap.WithCaller(false))
 	m.Logger.Debugf("EXEC: %v", cmd.String())
 
-	stdOutWriter := &zapio.Writer{Log: cmdLogger.Desugar(), Level: zap.InfoLevel}
+	stdOutWriter := &zapio.Writer{Log: cmdLogger, Level: zap.InfoLevel}
 	defer stdOutWriter.Close()
 
-	stdErrWriter := &zapio.Writer{Log: cmdLogger.Desugar(), Level: zap.ErrorLevel}
+	stdErrWriter := &zapio.Writer{Log: cmdLogger, Level: zap.ErrorLevel}
 	defer stdErrWriter.Close()
 
 	cmd.Stdout = stdOutWriter
 	cmd.Stderr = stdErrWriter
 	err := cmd.Run()
 	if err != nil {
-		cmdLogger.Error(err)
+		cmdLogger.Error(err.Error())
 		return false
 	}
 	return true

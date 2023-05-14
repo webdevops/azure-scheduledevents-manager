@@ -40,6 +40,6 @@ RUN ["./kubectl", "version", "--client=true"]
 FROM ubuntu:20.04
 ENV LOG_JSON=1
 WORKDIR /
-COPY --from=test /app .
+COPY --from=test /app /usr/local/bin
 USER 1000:1000
-ENTRYPOINT ["/azure-scheduledevents-manager"]
+ENTRYPOINT ["/usr/local/bin/azure-scheduledevents-manager"]
