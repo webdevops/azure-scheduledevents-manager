@@ -8,7 +8,7 @@ type (
 	DrainManager interface {
 		SetInstanceName(name string)
 		InstanceName() string
-		Test()
+		Test() error
 		Drain(event *azuremetadata.AzureScheduledEvent) bool
 		Uncordon() bool
 	}

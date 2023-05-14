@@ -6,14 +6,12 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"runtime"
 	"strings"
 	"sync/atomic"
 
 	flags "github.com/jessevdk/go-flags"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
 	"github.com/webdevops/azure-scheduledevents-manager/config"
@@ -27,6 +25,7 @@ const (
 
 var (
 	argparser *flags.Parser
+	Opts      config.Opts
 
 	// Git version information
 	gitCommit = "<unknown>"
@@ -36,37 +35,37 @@ var (
 	drainzStatus = int64(0)
 )
 
-var opts config.Opts
-
 func main() {
 	initArgparser()
+	initLogger()
 
-	log.Infof("starting azure-scheduledevents-manager v%s (%s; %s; by %v)", gitTag, gitCommit, runtime.Version(), Author)
-	log.Info(string(opts.GetJson()))
+	logger.Infof("starting azure-scheduledevents-manager v%s (%s; %s; by %v)", gitTag, gitCommit, runtime.Version(), Author)
+	logger.Info(string(Opts.GetJson()))
 
-	log.Infof("starting azure metadata client")
+	logger.Infof("starting azure metadata client")
 	azureMetadataClient := &azuremetadata.AzureMetadata{
-		ScheduledEventsUrl:  opts.Azure.ScheduledEventsApiUrl,
-		InstanceMetadataUrl: opts.Azure.InstanceApiUrl,
-		Timeout:             &opts.Azure.Timeout,
+		ScheduledEventsUrl:  Opts.Azure.ScheduledEventsApiUrl,
+		InstanceMetadataUrl: Opts.Azure.InstanceApiUrl,
+		Timeout:             &Opts.Azure.Timeout,
 		UserAgent:           fmt.Sprintf("azure-scheduledevents-manager/%v", gitTag),
 	}
 	azureMetadataClient.Init()
 
-	if opts.Instance.VmNodeName == "" {
+	if Opts.Instance.VmNodeName == "" {
 		instanceMetadata, err := azureMetadataClient.FetchInstanceMetadata()
 		if err != nil {
-			panic(err)
+			logger.Fatal(err)
 		}
-		log.Infof("detecting VM resource name")
-		opts.Instance.VmNodeName = instanceMetadata.Compute.Name
+		logger.Infof("detecting VM resource name")
+		Opts.Instance.VmNodeName = instanceMetadata.Compute.Name
 	} else {
-		log.Infof("using VM resource name from env")
+		logger.Infof("using VM resource name from env")
 	}
-	log.Infof("using VM node: %v", opts.Instance.VmNodeName)
+	logger.Infof("using VM node: %v", Opts.Instance.VmNodeName)
 
 	scheduledEventsManager := manager.ScheduledEventsManager{
-		Conf:                opts,
+		Conf:                Opts,
+		Logger:              logger,
 		AzureMetadataClient: azureMetadataClient,
 	}
 	scheduledEventsManager.Init()
@@ -80,39 +79,43 @@ func main() {
 		atomic.StoreInt64(&drainzStatus, 1)
 	}
 
-	if opts.Drain.Enable {
-		switch opts.Drain.Mode {
+	if Opts.Drain.Enable {
+		switch Opts.Drain.Mode {
 		case "kubernetes":
-			log.Infof("start \"kubernetes\" mode")
-			log.Infof("using Kubernetes nodename: %v", opts.Kubernetes.NodeName)
+			logger.Infof("start \"kubernetes\" mode")
+			logger.Infof("using Kubernetes nodename: %v", Opts.Kubernetes.NodeName)
 			drain := &drainmanager.DrainManagerKubernetes{
-				Conf: opts,
+				Conf:   Opts,
+				Logger: logger,
 			}
-			drain.SetInstanceName(opts.Kubernetes.NodeName)
+			drain.SetInstanceName(Opts.Kubernetes.NodeName)
 			scheduledEventsManager.DrainManager = drain
 		case "command":
-			log.Infof("start \"command\" mode")
+			logger.Infof("start \"command\" mode")
 			drain := drainmanager.DrainManagerCommand{
-				Conf: opts,
+				Conf:   Opts,
+				Logger: logger,
 			}
-			drain.SetInstanceName(opts.Instance.VmNodeName)
+			drain.SetInstanceName(Opts.Instance.VmNodeName)
 			scheduledEventsManager.DrainManager = &drain
 		default:
-			log.Panicf("drain mode \"%v\" is not valid", opts.Drain.Mode)
+			logger.Fatalf("drain mode \"%v\" is not valid", Opts.Drain.Mode)
 		}
 
-		scheduledEventsManager.DrainManager.Test()
+		if err := scheduledEventsManager.DrainManager.Test(); err != nil {
+			logger.Fatalf(`failed to test drain manager: %v`, err)
+		}
 	}
 
-	log.Infof("starting manager")
+	logger.Infof("starting manager")
 	scheduledEventsManager.Start()
 
-	log.Infof("starting http server on %s", opts.Server.Bind)
+	logger.Infof("starting http server on %s", Opts.Server.Bind)
 	startHttpServer()
 }
 
 func initArgparser() {
-	argparser = flags.NewParser(&opts, flags.Default)
+	argparser = flags.NewParser(&Opts, flags.Default)
 	_, err := argparser.Parse()
 
 	// check if there is an parse error
@@ -127,39 +130,8 @@ func initArgparser() {
 		}
 	}
 
-	// verbose level
-	if opts.Logger.Verbose {
-		log.SetLevel(log.DebugLevel)
-	}
-
-	// debug level
-	if opts.Logger.Debug {
-		log.SetReportCaller(true)
-		log.SetLevel(log.TraceLevel)
-		log.SetFormatter(&log.TextFormatter{
-			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-				s := strings.Split(f.Function, ".")
-				funcName := s[len(s)-1]
-				return funcName, fmt.Sprintf("%s:%d", path.Base(f.File), f.Line)
-			},
-		})
-	}
-
-	// json log format
-	if opts.Logger.LogJson {
-		log.SetReportCaller(true)
-		log.SetFormatter(&log.JSONFormatter{
-			DisableTimestamp: true,
-			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-				s := strings.Split(f.Function, ".")
-				funcName := s[len(s)-1]
-				return funcName, fmt.Sprintf("%s:%d", path.Base(f.File), f.Line)
-			},
-		})
-	}
-
 	// validate instanceUrl url
-	instanceUrl, err := url.Parse(opts.Azure.InstanceApiUrl)
+	instanceUrl, err := url.Parse(Opts.Azure.InstanceApiUrl)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println()
@@ -173,14 +145,14 @@ func initArgparser() {
 	case "https":
 		break
 	default:
-		fmt.Printf("ApiURL scheme not allowed (must be http or https), got %v\n", opts.Azure.InstanceApiUrl)
+		fmt.Printf("ApiURL scheme not allowed (must be http or https), got %v\n", Opts.Azure.InstanceApiUrl)
 		fmt.Println()
 		argparser.WriteHelp(os.Stdout)
 		os.Exit(1)
 	}
 
 	// validate scheduledEventsUrl url
-	scheduledEventsUrl, err := url.Parse(opts.Azure.ScheduledEventsApiUrl)
+	scheduledEventsUrl, err := url.Parse(Opts.Azure.ScheduledEventsApiUrl)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println()
@@ -195,16 +167,16 @@ func initArgparser() {
 	case "https":
 		break
 	default:
-		fmt.Printf("ApiURL scheme not allowed (must be http or https), got %v\n", opts.Azure.ScheduledEventsApiUrl)
+		fmt.Printf("ApiURL scheme not allowed (must be http or https), got %v\n", Opts.Azure.ScheduledEventsApiUrl)
 		fmt.Println()
 		argparser.WriteHelp(os.Stdout)
 		os.Exit(1)
 	}
 
-	if opts.Drain.Enable {
-		switch opts.Drain.Mode {
+	if Opts.Drain.Enable {
+		switch Opts.Drain.Mode {
 		case "kubernetes":
-			if opts.Kubernetes.NodeName == "" {
+			if Opts.Kubernetes.NodeName == "" {
 				fmt.Println("kubernetes node name must be set in kubernetes drain mode")
 				fmt.Println()
 				argparser.WriteHelp(os.Stdout)
@@ -226,7 +198,7 @@ func startHttpServer() {
 	// healthz
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if _, err := fmt.Fprint(w, "Ok"); err != nil {
-			log.Error(err)
+			logger.Error(err)
 		}
 	})
 
@@ -234,12 +206,12 @@ func startHttpServer() {
 	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
 		if readyzStatus == 0 {
 			if _, err := fmt.Fprint(w, "Ok"); err != nil {
-				log.Error(err)
+				logger.Error(err)
 			}
 		} else {
 			w.WriteHeader(503)
 			if _, err := fmt.Fprint(w, "Drain in progress"); err != nil {
-				log.Error(err)
+				logger.Error(err)
 			}
 		}
 	})
@@ -248,12 +220,12 @@ func startHttpServer() {
 	mux.HandleFunc("/drainz", func(w http.ResponseWriter, r *http.Request) {
 		if drainzStatus == 0 {
 			if _, err := fmt.Fprint(w, "Ok"); err != nil {
-				log.Error(err)
+				logger.Error(err)
 			}
 		} else {
 			w.WriteHeader(503)
 			if _, err := fmt.Fprint(w, "Instance is drained"); err != nil {
-				log.Error(err)
+				logger.Error(err)
 			}
 		}
 	})
@@ -261,10 +233,10 @@ func startHttpServer() {
 	mux.Handle("/metrics", promhttp.Handler())
 
 	srv := &http.Server{
-		Addr:         opts.Server.Bind,
+		Addr:         Opts.Server.Bind,
 		Handler:      mux,
-		ReadTimeout:  opts.Server.ReadTimeout,
-		WriteTimeout: opts.Server.WriteTimeout,
+		ReadTimeout:  Opts.Server.ReadTimeout,
+		WriteTimeout: Opts.Server.WriteTimeout,
 	}
-	log.Fatal(srv.ListenAndServe())
+	logger.Fatal(srv.ListenAndServe())
 }

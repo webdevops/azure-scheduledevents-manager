@@ -1,11 +1,13 @@
 package drainmanager
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapio"
 
 	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
 	"github.com/webdevops/azure-scheduledevents-manager/config"
@@ -13,7 +15,8 @@ import (
 
 type DrainManagerKubernetes struct {
 	DrainManager
-	Conf config.Opts
+	Conf   config.Opts
+	Logger *zap.SugaredLogger
 
 	nodeName string
 }
@@ -26,31 +29,34 @@ func (m *DrainManagerKubernetes) InstanceName() string {
 	return m.nodeName
 }
 
-func (m *DrainManagerKubernetes) Test() {
-	m.execGet("node", m.nodeName)
+func (m *DrainManagerKubernetes) Test() error {
+	if !m.execGet("node", m.nodeName) {
+		return errors.New(`unable to get node from kubernetes api`)
+	}
+	return nil
 }
 
 func (m *DrainManagerKubernetes) Drain(event *azuremetadata.AzureScheduledEvent) bool {
 	// Label
-	log.Infof(fmt.Sprintf("label node %v", m.nodeName))
+	m.Logger.Infof(fmt.Sprintf("label node %v", m.nodeName))
 	if !m.exec("label", "node", m.nodeName, "--overwrite=true", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", m.nodeName)) {
 		return false
 	}
 
 	// DRAIN
-	log.Infof(fmt.Sprintf("drain node %v", m.nodeName))
+	m.Logger.Infof(fmt.Sprintf("drain node %v", m.nodeName))
 	kubectlDrainOpts := []string{"drain", m.nodeName}
 	kubectlDrainOpts = append(kubectlDrainOpts, m.Conf.Kubernetes.Drain.Args...)
 	return m.exec(kubectlDrainOpts...)
 }
 
 func (m *DrainManagerKubernetes) Uncordon() bool {
-	log.Infof(fmt.Sprintf("uncordon node %v", m.nodeName))
+	m.Logger.Infof(fmt.Sprintf("uncordon node %v", m.nodeName))
 	if !m.exec("uncordon", "-l", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", m.nodeName)) {
 		return false
 	}
 
-	log.Infof(fmt.Sprintf("remove label node %v", m.nodeName))
+	m.Logger.Infof(fmt.Sprintf("remove label node %v", m.nodeName))
 	return m.exec("label", "node", m.nodeName, "--overwrite=true", "webdevops.io/azure-scheduledevents-manager-")
 }
 
@@ -75,10 +81,17 @@ func (m *DrainManagerKubernetes) exec(args ...string) bool {
 func (m *DrainManagerKubernetes) runComand(cmd *exec.Cmd) bool {
 	cmd.Env = os.Environ()
 
-	cmdLogger := log.WithField("command", "kubectl")
-	log.Debugf("EXEC: %v", cmd.String())
-	cmd.Stdout = cmdLogger.WriterLevel(log.InfoLevel)
-	cmd.Stderr = cmdLogger.WriterLevel(log.ErrorLevel)
+	cmdLogger := m.Logger.With(zap.String("command", "kubectl"))
+	m.Logger.Debugf("EXEC: %v", cmd.String())
+
+	stdOutWriter := &zapio.Writer{Log: cmdLogger.Desugar(), Level: zap.InfoLevel}
+	defer stdOutWriter.Close()
+
+	stdErrWriter := &zapio.Writer{Log: cmdLogger.Desugar(), Level: zap.ErrorLevel}
+	defer stdErrWriter.Close()
+
+	cmd.Stdout = stdOutWriter
+	cmd.Stderr = stdErrWriter
 	err := cmd.Run()
 	if err != nil {
 		cmdLogger.Error(err)

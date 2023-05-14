@@ -6,7 +6,7 @@ import (
 
 	"github.com/containrrr/shoutrrr"
 	"github.com/prometheus/client_golang/prometheus"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
 	"github.com/webdevops/azure-scheduledevents-manager/config"
@@ -24,6 +24,7 @@ type (
 		OnAfterDrainEvent func()
 
 		Conf                config.Opts
+		Logger              *zap.SugaredLogger
 		AzureMetadataClient *azuremetadata.AzureMetadata
 		DrainManager        drainmanager.DrainManager
 
@@ -128,7 +129,7 @@ func (m *ScheduledEventsManager) collect() {
 		m.prometheus.requestErrors.With(prometheus.Labels{}).Inc()
 
 		if m.Conf.Azure.ErrorThreshold <= 0 || m.apiErrorCount <= m.Conf.Azure.ErrorThreshold {
-			log.Errorf("failed API call: %s", err)
+			m.Logger.Errorf("failed API call: %s", err)
 			return
 		} else {
 			panic(err.Error())
@@ -154,21 +155,21 @@ func (m *ScheduledEventsManager) collect() {
 		eventValue, err := event.NotBeforeUnixTimestamp()
 
 		if err != nil {
-			log.Errorf("unable to parse time \"%s\" of eventid \"%v\": %v", event.NotBefore, event.EventId, err)
+			m.Logger.Errorf("unable to parse time \"%s\" of eventid \"%v\": %v", event.NotBefore, event.EventId, err)
 			eventValue = 0
 		}
 
 		if len(event.Resources) >= 1 {
 			for _, resource := range event.Resources {
-				log.WithFields(log.Fields{
-					"eventID":      event.EventId,
-					"eventType":    event.EventType,
-					"resourceType": event.ResourceType,
-					"resource":     resource,
-					"eventStatus":  event.EventStatus,
-					"notBefore":    event.NotBefore,
-					"eventSource":  event.EventSource,
-				}).Debugf("found ScheduledEvent")
+				m.Logger.With(
+					zap.String("eventID", event.EventId),
+					zap.String("eventType", event.EventType),
+					zap.String("resourceType", event.ResourceType),
+					zap.String("resource", resource),
+					zap.String("eventStatus", event.EventStatus),
+					zap.String("notBefore", event.NotBefore),
+					zap.String("eventSource", event.EventSource),
+				).Debugf("found ScheduledEvent")
 
 				m.prometheus.event.With(
 					prometheus.Labels{
@@ -182,15 +183,15 @@ func (m *ScheduledEventsManager) collect() {
 					}).Set(eventValue)
 
 				if m.Conf.Instance.VmNodeName != "" && resource == m.Conf.Instance.VmNodeName {
-					log.WithFields(log.Fields{
-						"eventID":      event.EventId,
-						"eventType":    event.EventType,
-						"resourceType": event.ResourceType,
-						"resource":     resource,
-						"eventStatus":  event.EventStatus,
-						"notBefore":    event.NotBefore,
-						"eventSource":  event.EventSource,
-					}).Infof("detected ScheduledEvent %v with %v by %v in %v for current node", event.EventId, event.EventSource, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()) //nolint:gosimple
+					m.Logger.With(
+						zap.String("eventID", event.EventId),
+						zap.String("eventType", event.EventType),
+						zap.String("resourceType", event.ResourceType),
+						zap.String("resource", resource),
+						zap.String("eventStatus", event.EventStatus),
+						zap.String("notBefore", event.NotBefore),
+						zap.String("eventSource", event.EventSource),
+					).Infof("detected ScheduledEvent %v with %v by %v in %v for current node", event.EventId, event.EventSource, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()) //nolint:gosimple
 					approveEvent = &event
 					if eventValue == 1 || drainTimeThreshold >= eventValue {
 						if stringArrayContainsCi(m.Conf.Drain.Events, event.EventType) {
@@ -215,35 +216,35 @@ func (m *ScheduledEventsManager) collect() {
 					"eventSource":  event.EventSource,
 				}).Set(eventValue)
 
-			log.WithFields(log.Fields{
-				"eventID":      event.EventId,
-				"eventType":    event.EventType,
-				"resourceType": event.ResourceType,
-				"resource":     "",
-				"eventStatus":  event.EventStatus,
-				"notBefore":    event.NotBefore,
-				"eventSource":  event.EventSource,
-			}).Debugf("found ScheduledEvent")
+			m.Logger.With(
+				zap.String("eventID", event.EventId),
+				zap.String("eventType", event.EventType),
+				zap.String("resourceType", event.ResourceType),
+				zap.String("resource", ""),
+				zap.String("eventStatus", event.EventStatus),
+				zap.String("notBefore", event.NotBefore),
+				zap.String("eventSource", event.EventSource),
+			).Debugf("found ScheduledEvent")
 		}
 	}
 
 	m.prometheus.documentIncarnation.With(prometheus.Labels{}).Set(float64(scheduledEvents.DocumentIncarnation))
 
 	if len(scheduledEvents.Events) > 0 {
-		log.Infof("found %v Azure ScheduledEvents", len(scheduledEvents.Events))
+		m.Logger.Infof("found %v Azure ScheduledEvents", len(scheduledEvents.Events))
 	} else {
-		log.Debugf("found %v Azure ScheduledEvents", len(scheduledEvents.Events))
+		m.Logger.Debugf("found %v Azure ScheduledEvents", len(scheduledEvents.Events))
 		m.OnClear()
 
 		// if event is gone, ensure uncordon of node
 		if !m.nodeUncordon && m.DrainManager != nil {
-			log.Infof("ensuring uncordon of instance %v", m.instanceName())
+			m.Logger.Infof("ensuring uncordon of instance %v", m.instanceName())
 			if m.DrainManager.Uncordon() {
-				log.Infof("uncordon finished")
+				m.Logger.Infof("uncordon finished")
 				m.nodeDrained = false
 				m.nodeUncordon = true
 			} else {
-				log.Infof("uncordon failed")
+				m.Logger.Infof("uncordon failed")
 			}
 		}
 	}
@@ -255,7 +256,7 @@ func (m *ScheduledEventsManager) collect() {
 
 	if m.Conf.Drain.Enable {
 		if approveEvent != nil && triggerDrain {
-			eventLogger := log.WithField("eventID", approveEvent.EventId)
+			eventLogger := m.Logger.With(zap.String("eventID", approveEvent.EventId))
 
 			if !m.nodeDrained {
 				eventLogger.Infof("ensuring drain of instance %v", m.instanceName())
@@ -300,13 +301,13 @@ func (m *ScheduledEventsManager) collect() {
 			}
 		} else {
 			if !m.nodeUncordon && m.DrainManager != nil {
-				log.Infof("ensuring uncordon of instance %v", m.instanceName())
+				m.Logger.Infof("ensuring uncordon of instance %v", m.instanceName())
 				if m.DrainManager.Uncordon() {
-					log.Infof("uncordon finished")
+					m.Logger.Infof("uncordon finished")
 					m.nodeDrained = false
 					m.nodeUncordon = true
 				} else {
-					log.Infof("uncordon failed")
+					m.Logger.Infof("uncordon failed")
 				}
 			}
 		}
@@ -333,7 +334,7 @@ func (m *ScheduledEventsManager) sendNotification(message string, args ...interf
 
 	for _, url := range m.Conf.Notification.List {
 		if err := shoutrrr.Send(url, message); err != nil {
-			log.Errorf("unable to send shoutrrr notification: %v", err)
+			m.Logger.Errorf("unable to send shoutrrr notification: %v", err)
 		}
 	}
 }

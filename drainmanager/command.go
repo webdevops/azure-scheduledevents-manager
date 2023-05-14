@@ -6,7 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapio"
 
 	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
 	"github.com/webdevops/azure-scheduledevents-manager/config"
@@ -15,6 +16,7 @@ import (
 type DrainManagerCommand struct {
 	DrainManager
 	Conf         config.Opts
+	Logger       *zap.SugaredLogger
 	instanceName string
 }
 
@@ -26,10 +28,12 @@ func (m *DrainManagerCommand) InstanceName() string {
 	return m.instanceName
 }
 
-func (m *DrainManagerCommand) Test() {
+func (m *DrainManagerCommand) Test() error {
 	if m.Conf.Command.Test.Cmd != "" {
 		m.exec(m.Conf.Command.Test.Cmd, nil)
 	}
+
+	return nil
 }
 
 func (m *DrainManagerCommand) Drain(event *azuremetadata.AzureScheduledEvent) bool {
@@ -60,10 +64,18 @@ func (m *DrainManagerCommand) exec(command string, event *azuremetadata.AzureSch
 
 	cmd := exec.Command("sh", "-c", command)
 	cmd.Env = env
-	cmdLogger := log.WithField("command", "sh")
-	log.Debugf("EXEC: %v", cmd.String())
-	cmd.Stdout = cmdLogger.WriterLevel(log.InfoLevel)
-	cmd.Stderr = cmdLogger.WriterLevel(log.ErrorLevel)
+	cmdLogger := m.Logger.With(zap.String("command", "sh"))
+	m.Logger.Debugf("EXEC: %v", cmd.String())
+
+	stdOutWriter := &zapio.Writer{Log: cmdLogger.Desugar(), Level: zap.InfoLevel}
+	defer stdOutWriter.Close()
+
+	stdErrWriter := &zapio.Writer{Log: cmdLogger.Desugar(), Level: zap.ErrorLevel}
+	defer stdErrWriter.Close()
+
+	cmd.Stdout = stdOutWriter
+	cmd.Stderr = stdErrWriter
+
 	err := cmd.Run()
 	if err != nil {
 		cmdLogger.Panic(err)
