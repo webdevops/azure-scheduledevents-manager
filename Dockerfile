@@ -35,11 +35,44 @@ RUN ["./azure-scheduledevents-manager", "--help"]
 RUN ["./kubectl", "version", "--client=true"]
 
 #############################################
-# Final
+# final-ubuntu
 #############################################
-FROM ubuntu:20.04
+FROM ubuntu:22.04 as final-ubuntu
 ENV LOG_JSON=1
 WORKDIR /
 COPY --from=test /app /usr/local/bin
 USER 1000:1000
 ENTRYPOINT ["/usr/local/bin/azure-scheduledevents-manager"]
+
+#############################################
+# final-alpine
+#############################################
+FROM alpine as final-alpine
+ENV LOG_JSON=1
+WORKDIR /
+COPY --from=test /app /usr/local/bin
+USER 1000:1000
+ENTRYPOINT ["/usr/local/bin/azure-scheduledevents-manager"]
+
+#############################################
+# final-distroless
+#############################################
+FROM gcr.io/distroless/static as final-distroless
+ENV LOG_JSON=1 \
+    PATH=/
+WORKDIR /
+COPY --from=test /app .
+USER 1000:1000
+ENTRYPOINT ["/azure-scheduledevents-manager"]
+
+#############################################
+# final-kubernetes
+#############################################
+FROM gcr.io/distroless/static as final-kubernetes
+ENV LOG_JSON=1 \
+    DRAIN_MODE=kubernetes \
+    PATH=/
+WORKDIR /
+COPY --from=test /app .
+USER 1000:1000
+ENTRYPOINT ["/azure-scheduledevents-manager"]
