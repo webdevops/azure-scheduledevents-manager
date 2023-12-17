@@ -38,7 +38,7 @@ jobs:
 
           - Dockerfile: Dockerfile
             target: "final-alpine"
-            suffix: ""
+            suffix: "-alpine"
             latest: false
 
           - Dockerfile: Dockerfile
