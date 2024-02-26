@@ -18,7 +18,7 @@ require (
 require (
 	github.com/go-resty/resty/v2 v2.11.0
 	github.com/jessevdk/go-flags v1.5.0
-	go.uber.org/zap v1.26.0
+	go.uber.org/zap v1.27.0
 )
 
 require (
