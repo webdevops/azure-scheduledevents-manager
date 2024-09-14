@@ -41,6 +41,7 @@ func main() {
 
 	logger.Infof("starting azure-scheduledevents-manager v%s (%s; %s; by %v)", gitTag, gitCommit, runtime.Version(), Author)
 	logger.Info(string(Opts.GetJson()))
+	initSystem()
 
 	logger.Infof("starting azure metadata client")
 	azureMetadataClient := &azuremetadata.AzureMetadata{
