@@ -1,7 +1,7 @@
 #############################################
 # Build
 #############################################
-FROM --platform=$BUILDPLATFORM golang:1.22-alpine as build
+FROM --platform=$BUILDPLATFORM golang:1.23-alpine AS build
 
 RUN apk upgrade --no-cache --force
 RUN apk add --update build-base make git curl
@@ -26,7 +26,7 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make build
 #############################################
 # Test
 #############################################
-FROM gcr.io/distroless/static as test
+FROM gcr.io/distroless/static AS test
 USER 0:0
 WORKDIR /app
 COPY --from=build /go/src/github.com/webdevops/azure-scheduledevents-manager/azure-scheduledevents-manager .
@@ -37,7 +37,7 @@ RUN ["./kubectl", "version", "--client=true"]
 #############################################
 # final-ubuntu
 #############################################
-FROM ubuntu:22.04 as final-ubuntu
+FROM ubuntu:22.04 AS final-ubuntu
 ENV LOG_JSON=1
 WORKDIR /
 COPY --from=test /app /usr/local/bin
@@ -47,7 +47,7 @@ ENTRYPOINT ["/usr/local/bin/azure-scheduledevents-manager"]
 #############################################
 # final-alpine
 #############################################
-FROM alpine as final-alpine
+FROM alpine AS final-alpine
 ENV LOG_JSON=1
 WORKDIR /
 COPY --from=test /app /usr/local/bin
@@ -57,7 +57,7 @@ ENTRYPOINT ["/usr/local/bin/azure-scheduledevents-manager"]
 #############################################
 # final-distroless
 #############################################
-FROM gcr.io/distroless/static as final-distroless
+FROM gcr.io/distroless/static AS final-distroless
 ENV LOG_JSON=1 \
     PATH=/
 WORKDIR /
@@ -68,7 +68,7 @@ ENTRYPOINT ["/azure-scheduledevents-manager"]
 #############################################
 # final-kubernetes
 #############################################
-FROM gcr.io/distroless/static as final-kubernetes
+FROM gcr.io/distroless/static AS final-kubernetes
 ENV LOG_JSON=1 \
     DRAIN_MODE=kubernetes \
     PATH=/
