@@ -18,7 +18,7 @@ require (
 require (
 	github.com/KimMachineGun/automemlimit v0.6.1
 	github.com/dustin/go-humanize v1.0.1
-	github.com/go-resty/resty/v2 v2.14.0
+	github.com/go-resty/resty/v2 v2.15.0
 	github.com/jessevdk/go-flags v1.6.1
 	go.uber.org/zap v1.27.0
 	go.uber.org/zap/exp v0.2.0
