@@ -75,7 +75,7 @@ func (m *DrainManagerKubernetes) exec(args ...string) bool {
 		args = append(args, "--dry-run")
 	}
 
-	return m.runComand(exec.Command("/kubectl", args...))
+	return m.runComand(exec.Command("kubectl", args...))
 }
 
 func (m *DrainManagerKubernetes) runComand(cmd *exec.Cmd) bool {
