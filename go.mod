@@ -7,7 +7,7 @@ require (
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/fatih/color v1.17.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/prometheus/client_golang v1.20.3
+	github.com/prometheus/client_golang v1.20.5
 	github.com/prometheus/common v0.59.1 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	golang.org/x/net v0.29.0 // indirect
@@ -18,10 +18,10 @@ require (
 require (
 	github.com/KimMachineGun/automemlimit v0.6.1
 	github.com/dustin/go-humanize v1.0.1
-	github.com/go-resty/resty/v2 v2.14.0
+	github.com/go-resty/resty/v2 v2.16.2
 	github.com/jessevdk/go-flags v1.6.1
 	go.uber.org/zap v1.27.0
-	go.uber.org/zap/exp v0.2.0
+	go.uber.org/zap/exp v0.3.0
 )
 
 require (
