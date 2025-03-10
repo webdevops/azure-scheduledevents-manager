@@ -7,7 +7,7 @@ require (
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/prometheus/client_golang v1.20.5
+	github.com/prometheus/client_golang v1.21.1
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	golang.org/x/net v0.34.0 // indirect
@@ -16,7 +16,7 @@ require (
 )
 
 require (
-	github.com/KimMachineGun/automemlimit v0.7.0
+	github.com/KimMachineGun/automemlimit v0.7.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/jessevdk/go-flags v1.6.1
