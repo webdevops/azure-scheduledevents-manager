@@ -191,7 +191,7 @@ func (m *ScheduledEventsManager) collect() {
 						zap.String("eventStatus", event.EventStatus),
 						zap.String("notBefore", event.NotBefore),
 						zap.String("eventSource", event.EventSource),
-					).Infof("detected ScheduledEvent %v with %v by %v in %v for current node", event.EventId, event.EventSource, event.EventType, time.Unix(int64(eventValue), 0).Sub(time.Now()).String()) //nolint:gosimple
+					).Infof("detected ScheduledEvent %v with %v by %v in %v for current node", event.EventId, event.EventSource, event.EventType, time.Until(time.Unix(int64(eventValue), 0)).String()) //nolint:gosimple
 					approveEvent = &event
 					if eventValue == 1 || drainTimeThreshold >= eventValue {
 						if stringArrayContainsCi(m.Conf.Drain.Events, event.EventType) {
