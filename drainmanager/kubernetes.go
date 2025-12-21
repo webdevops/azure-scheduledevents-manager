@@ -39,25 +39,25 @@ func (m *DrainManagerKubernetes) Test() error {
 
 func (m *DrainManagerKubernetes) Drain(event *azuremetadata.AzureScheduledEvent) bool {
 	// Label
-	m.Logger.Infof(fmt.Sprintf("label node %v", m.nodeName))
+	m.Logger.Info("label node", slog.String("node", m.nodeName))
 	if !m.exec("label", "node", m.nodeName, "--overwrite=true", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", m.nodeName)) {
 		return false
 	}
 
 	// DRAIN
-	m.Logger.Infof(fmt.Sprintf("drain node %v", m.nodeName))
+	m.Logger.Info("drain node", slog.String("node", m.nodeName))
 	kubectlDrainOpts := []string{"drain", m.nodeName}
 	kubectlDrainOpts = append(kubectlDrainOpts, m.Conf.Kubernetes.Drain.Args...)
 	return m.exec(kubectlDrainOpts...)
 }
 
 func (m *DrainManagerKubernetes) Uncordon() bool {
-	m.Logger.Infof(fmt.Sprintf("uncordon node %v", m.nodeName))
+	m.Logger.Info("uncordon node", slog.String("node", m.nodeName))
 	if !m.exec("uncordon", "-l", fmt.Sprintf("webdevops.io/azure-scheduledevents-manager=%v", m.nodeName)) {
 		return false
 	}
 
-	m.Logger.Infof(fmt.Sprintf("remove label node %v", m.nodeName))
+	m.Logger.Info("remove label node", slog.String("node", m.nodeName))
 	return m.exec("label", "node", m.nodeName, "--overwrite=true", "webdevops.io/azure-scheduledevents-manager-")
 }
 
