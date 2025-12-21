@@ -73,7 +73,7 @@ func (m *DrainManagerKubernetes) execGet(resourceType string, args ...string) bo
 
 func (m *DrainManagerKubernetes) exec(args ...string) bool {
 	if m.Conf.Kubernetes.Drain.DryRun {
-		args = append(args, "--dry-run")
+		args = append(args, "--dry-run=client")
 	}
 
 	return m.runComand(exec.Command("kubectl", args...))
