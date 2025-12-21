@@ -1,7 +1,7 @@
 package drainmanager
 
 import (
-	"go.uber.org/zap"
+	"github.com/webdevops/go-common/log/slogger"
 
 	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
 	"github.com/webdevops/azure-scheduledevents-manager/config"
@@ -10,7 +10,7 @@ import (
 type DrainManagerNoop struct {
 	DrainManager
 	Conf         config.Opts
-	Logger       *zap.SugaredLogger
+	Logger       *slogger.Logger
 	instanceName string
 }
 

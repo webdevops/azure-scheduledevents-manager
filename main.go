@@ -30,6 +30,7 @@ var (
 	// Git version information
 	gitCommit = "<unknown>"
 	gitTag    = "<unknown>"
+	buildDate = "<unknown>"
 
 	readyzStatus = int64(0)
 	drainzStatus = int64(0)
@@ -39,7 +40,7 @@ func main() {
 	initArgparser()
 	initLogger()
 
-	logger.Infof("starting azure-scheduledevents-manager v%s (%s; %s; by %v)", gitTag, gitCommit, runtime.Version(), Author)
+	logger.Infof("starting azure-scheduledevents-manager v%s (%s; %s; by %v at %v)", gitTag, gitCommit, runtime.Version(), Author, buildDate)
 	logger.Info(string(Opts.GetJson()))
 	initSystem()
 
@@ -55,7 +56,7 @@ func main() {
 	if Opts.Instance.VmNodeName == "" {
 		instanceMetadata, err := azureMetadataClient.FetchInstanceMetadata()
 		if err != nil {
-			logger.Fatal(err)
+			logger.Fatal(err.Error())
 		}
 		logger.Infof("detecting VM resource name")
 		Opts.Instance.VmNodeName = instanceMetadata.Compute.Name
@@ -199,7 +200,7 @@ func startHttpServer() {
 	// healthz
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if _, err := fmt.Fprint(w, "Ok"); err != nil {
-			logger.Error(err)
+			logger.Error(err.Error())
 		}
 	})
 
@@ -207,12 +208,12 @@ func startHttpServer() {
 	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
 		if readyzStatus == 0 {
 			if _, err := fmt.Fprint(w, "Ok"); err != nil {
-				logger.Error(err)
+				logger.Error(err.Error())
 			}
 		} else {
 			w.WriteHeader(503)
 			if _, err := fmt.Fprint(w, "Drain in progress"); err != nil {
-				logger.Error(err)
+				logger.Error(err.Error())
 			}
 		}
 	})
@@ -221,12 +222,12 @@ func startHttpServer() {
 	mux.HandleFunc("/drainz", func(w http.ResponseWriter, r *http.Request) {
 		if drainzStatus == 0 {
 			if _, err := fmt.Fprint(w, "Ok"); err != nil {
-				logger.Error(err)
+				logger.Error(err.Error())
 			}
 		} else {
 			w.WriteHeader(503)
 			if _, err := fmt.Fprint(w, "Instance is drained"); err != nil {
-				logger.Error(err)
+				logger.Error(err.Error())
 			}
 		}
 	})
@@ -239,5 +240,7 @@ func startHttpServer() {
 		ReadTimeout:  Opts.Server.ReadTimeout,
 		WriteTimeout: Opts.Server.WriteTimeout,
 	}
-	logger.Fatal(srv.ListenAndServe())
+	if err := srv.ListenAndServe(); err != nil {
+		logger.Fatal(err.Error())
+	}
 }

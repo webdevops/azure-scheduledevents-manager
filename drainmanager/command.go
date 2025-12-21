@@ -2,12 +2,13 @@ package drainmanager
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
 
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapio"
+	slogio "github.com/utkuozdemir/go-slogio"
+	"github.com/webdevops/go-common/log/slogger"
 
 	"github.com/webdevops/azure-scheduledevents-manager/azuremetadata"
 	"github.com/webdevops/azure-scheduledevents-manager/config"
@@ -16,7 +17,7 @@ import (
 type DrainManagerCommand struct {
 	DrainManager
 	Conf         config.Opts
-	Logger       *zap.SugaredLogger
+	Logger       *slogger.Logger
 	instanceName string
 }
 
@@ -65,20 +66,14 @@ func (m *DrainManagerCommand) exec(command string, event *azuremetadata.AzureSch
 	cmd := exec.Command("sh", "-c", command)
 	cmd.Env = env
 
-	cmdLogger := m.Logger.With(zap.String("command", "sh")).Desugar()
-	cmdLogger = cmdLogger.WithOptions(zap.AddStacktrace(zap.PanicLevel), zap.WithCaller(false))
+	cmdLogger := m.Logger.With(slog.String("command", "sh"))
+	writer := &slogio.Writer{Log: cmdLogger.Slog(), Level: slogger.LevelInfo}
+	defer writer.Close()
+
+	cmd.Stdout = writer
+	cmd.Stderr = writer
 
 	m.Logger.Debugf("EXEC: %v", cmd.String())
-
-	stdOutWriter := &zapio.Writer{Log: cmdLogger, Level: zap.InfoLevel}
-	defer stdOutWriter.Close()
-
-	stdErrWriter := &zapio.Writer{Log: cmdLogger, Level: zap.ErrorLevel}
-	defer stdErrWriter.Close()
-
-	cmd.Stdout = stdOutWriter
-	cmd.Stderr = stdErrWriter
-
 	err := cmd.Run()
 	if err != nil {
 		cmdLogger.Error(err.Error())
