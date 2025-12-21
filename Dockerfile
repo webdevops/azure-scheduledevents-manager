@@ -14,6 +14,7 @@ RUN go mod download
 
 COPY . .
 RUN make test
+RUN make build # warmup
 ARG TARGETOS TARGETARCH
 
 # kubectl
