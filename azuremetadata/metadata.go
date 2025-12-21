@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	resty "github.com/go-resty/resty/v2"
+	resty "resty.dev/v3"
 )
 
 type AzureMetadata struct {
@@ -34,10 +34,10 @@ func (m *AzureMetadata) Init() {
 	m.restClient.SetRetryCount(5)
 	m.restClient.SetRetryMaxWaitTime(30 * time.Second)
 	m.restClient.SetRetryWaitTime(10 * time.Second)
-	m.restClient.AddRetryCondition(resty.RetryConditionFunc(func(r *resty.Response, err error) bool {
+	m.restClient.AddRetryConditions(func(r *resty.Response, err error) bool {
 		// retry for 4xx and 5xx
 		return r.StatusCode() >= http.StatusBadRequest
-	}))
+	})
 }
 
 func (m *AzureMetadata) FetchScheduledEvents() (*AzureScheduledEventResponse, error) {
@@ -52,7 +52,7 @@ func (m *AzureMetadata) FetchScheduledEvents() (*AzureScheduledEventResponse, er
 		return nil, fmt.Errorf("expected HTTP status 200, got %v", resp.StatusCode())
 	}
 
-	if err = json.Unmarshal(resp.Body(), ret); err != nil {
+	if err = json.Unmarshal(resp.Bytes(), ret); err != nil {
 		return nil, err
 	}
 
@@ -71,7 +71,7 @@ func (m *AzureMetadata) FetchInstanceMetadata() (*AzureMetadataInstanceResponse,
 		return nil, fmt.Errorf("expected HTTP status 200, got %v", resp.StatusCode())
 	}
 
-	if err = json.Unmarshal(resp.Body(), ret); err != nil {
+	if err = json.Unmarshal(resp.Bytes(), ret); err != nil {
 		return nil, err
 	}
 
