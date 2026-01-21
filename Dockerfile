@@ -21,6 +21,7 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s
 RUN chmod +x kubectl
 
 # Compile
+ARG TARGETOS TARGETARCH
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make build
 
 #############################################
