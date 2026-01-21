@@ -2,7 +2,7 @@ module github.com/webdevops/azure-scheduledevents-manager
 
 go 1.25.0
 
-toolchain go1.25.5
+toolchain go1.25.6
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -11,14 +11,14 @@ require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/prometheus/client_golang v1.23.2
-	github.com/prometheus/common v0.67.4 // indirect
+	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.19.2 // indirect
 	github.com/utkuozdemir/go-slogio v0.1.0
-	github.com/webdevops/go-common v0.0.0-20251219213826-139615203ee5
-	golang.org/x/net v0.48.0 // indirect
-	golang.org/x/sys v0.39.0 // indirect
+	github.com/webdevops/go-common v0.0.0-20260114181232-292250a49633
+	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
-	resty.dev/v3 v3.0.0-beta.5
+	resty.dev/v3 v3.0.0-beta.6
 )
 
 require (
