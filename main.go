@@ -103,10 +103,6 @@ func main() {
 		default:
 			logger.Fatalf("drain mode \"%v\" is not valid", Opts.Drain.Mode)
 		}
-
-		if err := scheduledEventsManager.DrainManager.Test(); err != nil {
-			logger.Fatalf(`failed to test drain manager: %v`, err)
-		}
 	}
 
 	logger.Infof("starting manager")

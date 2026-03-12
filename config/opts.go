@@ -23,8 +23,12 @@ type (
 			WriteTimeout time.Duration `long:"server.timeout.write"     env:"SERVER_TIMEOUT_WRITE"  description:"Server write timeout"  default:"10s"`
 		}
 
+		Startup struct {
+			Delay time.Duration `long:"startup.delay"   env:"STARTUP_DELAY"   description:"Delay startup time"  default:"30s"`
+		}
+
 		Scrape struct {
-			Time time.Duration `long:"scrape.time"   env:"SCRAPE_TIME"   description:"Scrape time in seconds"  default:"1m"`
+			Time time.Duration `long:"scrape.time"   env:"SCRAPE_TIME"   description:"Scrape time"  default:"1m"`
 		}
 
 		// Api option

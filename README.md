@@ -35,12 +35,19 @@ Application Options:
       --server.bind=                               Server address (default: :8080) [$SERVER_BIND]
       --server.timeout.read=                       Server read timeout (default: 5s) [$SERVER_TIMEOUT_READ]
       --server.timeout.write=                      Server write timeout (default: 10s) [$SERVER_TIMEOUT_WRITE]
-      --scrape.time=                               Scrape time in seconds (default: 1m) [$SCRAPE_TIME]
-      --azure.metadatainstance-url=                Azure ScheduledEvents API URL (default: http://169.254.169.254/metadata/instance?api-version=2019-08-01) [$AZURE_METADATAINSTANCE_URL]
-      --azure.scheduledevents-url=                 Azure ScheduledEvents API URL (default: http://169.254.169.254/metadata/scheduledevents?api-version=2019-08-01) [$AZURE_SCHEDULEDEVENTS_URL]
+      --startup.delay=                             Delay startup time (default: 30s) [$STARTUP_DELAY]
+      --scrape.time=                               Scrape time (default: 1m) [$SCRAPE_TIME]
+      --azure.metadatainstance-url=                Azure ScheduledEvents API URL (default:
+                                                   http://169.254.169.254/metadata/instance?api-version=2019-08-01)
+                                                   [$AZURE_METADATAINSTANCE_URL]
+      --azure.scheduledevents-url=                 Azure ScheduledEvents API URL (default:
+                                                   http://169.254.169.254/metadata/scheduledevents?api-version=2019-08-01)
+                                                   [$AZURE_SCHEDULEDEVENTS_URL]
       --azure.timeout=                             Azure API timeout (seconds) (default: 30s) [$AZURE_TIMEOUT]
-      --azure.error-threshold=                     Azure API error threshold (after which app will panic) (default: 0) [$AZURE_ERROR_THRESHOLD]
-      --azure.approve-scheduledevent               Approve ScheduledEvent and start (if possible) start them ASAP [$AZURE_APPROVE_SCHEDULEDEVENT]
+      --azure.error-threshold=                     Azure API error threshold (after which app will panic) (default: 0)
+                                                   [$AZURE_ERROR_THRESHOLD]
+      --azure.approve-scheduledevent               Approve ScheduledEvent and start (if possible) start them ASAP
+                                                   [$AZURE_APPROVE_SCHEDULEDEVENT]
       --vm.nodename=                               VM node name [$VM_NODENAME]
       --drain.enable                               Enable drain handling [$DRAIN_ENABLE]
       --drain.mode=[kubernetes|command]            Mode [$DRAIN_MODE]

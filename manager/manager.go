@@ -110,6 +110,14 @@ func (m *ScheduledEventsManager) initMetrics() {
 
 func (m *ScheduledEventsManager) Start() {
 	go func() {
+		// delay startup a little bit
+		time.Sleep(m.Conf.Startup.Delay)
+
+		// test drain manager
+		if err := m.DrainManager.Test(); err != nil {
+			m.Logger.Fatalf(`failed to test drain manager: %v`, err)
+		}
+
 		for {
 			m.collect()
 			time.Sleep(m.Conf.Scrape.Time)
