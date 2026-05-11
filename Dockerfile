@@ -38,7 +38,7 @@ RUN ["./kubectl", "version", "--client=true"]
 #############################################
 # final-ubuntu
 #############################################
-FROM ubuntu:24.04 AS final-ubuntu
+FROM ubuntu:26.04 AS final-ubuntu
 ENV LOG_FORMAT=json
 WORKDIR /
 COPY --from=test /app /usr/local/bin
