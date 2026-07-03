@@ -13,8 +13,8 @@ require (
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/utkuozdemir/go-slogio v0.1.0
 	github.com/webdevops/go-common v0.0.0-20260128195140-4fed4f1759f6
-	golang.org/x/net v0.52.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	resty.dev/v3 v3.0.0-beta.6
 )
